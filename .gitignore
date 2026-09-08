@@ -26,6 +26,7 @@ runtime/Laravel/.env
 runtime/Laravel/storage/logs/
 
 # MySQL database data
+data/mysql/
 runtime/mysql/data/
 runtime/mysql/*/data/
 runtime/mysql/backup/
