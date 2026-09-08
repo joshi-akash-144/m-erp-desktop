@@ -1,0 +1,36 @@
+@extends('errors.layout')
+
+@section('title', 'Server Error')
+
+
+@section('content')
+<div class="page page-center">
+    <div class="container-tight py-5 text-center">
+        
+        <!-- Illustration -->
+        <div class="mb-4">
+            <img src="{{ asset('img/illustrations/light/500.png') }}" alt="Server Error" class="img-fluid" style="max-width: 400px;">
+        </div>
+
+        <!-- Title -->
+        <h1 class="display-6 mb-2">Oops… Something went wrong!</h1>
+
+        <!-- Subtitle -->
+        <p class="text-muted mb-4">
+            Our server encountered an internal error. Please try again later or contact support if the problem persists.
+        </p>
+
+        <!-- Action Button -->
+        <a href="{{ url()->previous() }}" class="btn btn-primary">
+            <!-- Left arrow icon -->
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 12l14 0" />
+                <path d="M5 12l6 6" />
+                <path d="M5 12l6 -6" />
+            </svg>
+            Go Back
+        </a>
+
+    </div>
+</div>
+@endsection

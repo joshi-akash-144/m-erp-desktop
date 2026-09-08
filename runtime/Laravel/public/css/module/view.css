@@ -1,0 +1,129 @@
+ /* Modern Modal Styling */
+ /* .modal .modal-content {
+     border-radius: 12px;
+     overflow: hidden;
+ }
+
+ .modal .btn-secondary:hover {
+     background-color: #6c757d;
+     transform: translateY(-2px);
+     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+ }
+
+ .modal .btn-primary:hover {
+     background-color: #106fff;
+     transform: translateY(-2px);
+     box-shadow: 0 8px 20px rgba(13, 110, 253, 0.25);
+ }
+
+ .modal .card {
+     border-radius: 12px;
+ }
+
+ .modal .rounded-lg {
+     border-radius: 12px;
+ }
+
+ .modal .table tbody tr:hover {
+     background-color: #f8f9fa;
+     transition: all 0.3s ease;
+ } */
+
+ /* .modal .badge {
+        /* padding: 0.35rem 0.65rem;
+        font-weight: 500;
+        border-radius: 6px;
+    } */
+
+ /* .modal .form-label {
+        color: #495057;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    } */
+
+ /* .modal .bg-gradient {
+     background: linear-gradient(135deg, #f8f9fa 0%, #f0f2f5 100%);
+ } */
+
+ /* Smooth transitions */
+ /* .modal * {
+     transition: all 0.2s ease;
+ }
+
+ .modal .modal-dialog {
+     animation: slideIn 0.3s ease-out;
+ } */
+
+ /* table scrollable */
+ .scrollable-area {
+     /* This is the key: set a fixed height and enable scrolling */
+     height: 110px;
+     overflow-y: scroll;
+     scrollbar-color: #066fd1 var(--tblr-light-bg-subtle, #f1f1f1);
+     scrollbar-width: thin;    
+ }
+
+ table {
+     width: 100%;
+     border-collapse: collapse;
+ }
+
+ th,
+ td {
+     padding: 8px;
+     text-align: left;
+     border-bottom: 1px solid #ddd;
+     /* Ensures a consistent height for our calculation above (30px per row) */
+     height: 30px;
+ }
+
+ th {
+     background-color: #f2f2f2;
+ }
+
+ @keyframes slideIn {
+     from {
+         opacity: 0;
+         transform: translateY(20px);
+     }
+
+     to {
+         opacity: 1;
+         transform: translateY(0);
+     }
+ }
+
+ .module-form-section{        
+        padding: 8px 10px;
+        margin-bottom: 5px;      
+ }
+
+ .scrollable-area thead th {
+     position: sticky;     
+     top: 0;    
+     /* background-color: #f1f1f1;     */
+     z-index: 1;     
+ }
+
+ /* tbody, #item_table_body {
+    counter-reset: row-num;
+} */
+
+/* 2. Increment the counter before each table row  */
+/* #item_table_body tr::before {
+    counter-increment: row-num;
+    content: counter(row-num);
+    
+
+} */
+
+/* 3. Style the empty <td> to contain the generated content */
+/* #item_table_body td:first-child span::before {
+    content: counter(row-num);
+}  */
+  
+@media screen and (max-width: 984px) {
+    .extraDav {
+        margin: 10px;
+    }
+}

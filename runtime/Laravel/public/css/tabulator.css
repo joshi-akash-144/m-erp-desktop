@@ -1,0 +1,243 @@
+.tabulator .tabulator-cell {
+  font-size: 15px; /* increase from default 12px */
+  font-family: var(--tblr-font-sans-serif); /* optional */
+}
+
+.tabulator input[type="checkbox"] {
+  width: 17px !important; /* force size */
+  height: 17px !important;
+  cursor: pointer !important;
+  accent-color: #0d6efd !important; /* Tabler primary color */
+}
+
+.tabulator-row.tabulator-selected {
+  background-color: #e8f0fe !important; /* or any color */
+}
+
+.tabulator-row.tabulator-selected .tabulator-cell {
+  background-color: #e8f0fe !important;
+}
+
+/* .tabulator .tabulator-col .tabulator-col-title input[type="checkbox"] {
+    width: 20px !important;
+    height: 20px !important;
+    accent-color: #0d6efd !important;
+    border-radius: 0.25rem !important;
+} */
+
+.tabulator-loader {
+  background: rgba(255, 255, 255, 0.9) !important;
+}
+
+.tabulator-loader-msg {
+  font-size: 16px !important;
+  color: #206bc4 !important;
+  font-weight: 500 !important;
+}
+
+.tabulator-loader .tabulator-loader-msg::before {
+  content: "";
+  display: block;
+  width: 40px;
+  height: 40px;
+  margin: 0 auto 10px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #206bc4;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Force dropdown to use fixed positioning and high z-index */
+.tabulator-table .dropdown-menu {
+  /* position: fixed !important; */
+  z-index: 9999 !important;
+}
+
+.tabulator .tabulator-cell {
+  padding: 0px 8px !important;
+  font-size: 1.0rem !important;
+  font-weight: 500 !important;
+  line-height: 30px !important; /* ✅ Match row height */
+  color: var(--tblr-gray-700) !important;
+  font-family: var(--tblr-font-sans-serif) !important;
+}
+
+.tabulator .tabulator-cell .badge { 
+  margin-top: 5px !important;    
+}
+
+.tabulator .tabulator-row {
+  min-height: 30px !important;
+}
+
+.tabulator-header {
+  padding: 0 !important;
+  background-color: var(--tblr-gray-200)
+ !important;
+}
+
+.tabulator-header .tabulator-col-content {
+  font-size: 0.86rem !important;
+  background-color: var(--tblr-gray-200)
+ !important;
+  padding: 8px 12px !important;
+  color: var(--tblr-gray-700);
+}
+
+.tabulator-footer {
+  padding: 0 !important;
+  background-color: var(--tblr-light-bg-subtle) !important;
+}
+
+.tabulator-footer .tabulator-footer-contents {
+  font-size: 0.86rem !important;
+  background-color: var(--tblr-light-bg-subtle) !important;
+  padding: 8px 12px !important;
+  color: var(--tblr-gray-700);
+}
+
+/* ===== Row Hover Effect ===== */
+.tabulator-row:hover {
+  background-color: var(--tblr-primary-bg-subtle, #e8f0fe) !important;
+  transition: background-color 0.2s ease-in-out;
+  /* font-weight: 600 !important; */
+}
+
+/* Optional: Slight text darkening on hover */
+.tabulator-row:hover .tabulator-cell {
+  color: var(--tblr-dark, #000) !important;
+}
+
+/* Optional: Add a subtle shadow or border for more emphasis */
+.tabulator-row:hover {
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+}
+
+.tabulator-row-odd {
+  background-color: #f8f9fa !important; /* Light gray */
+}
+
+.tabulator-row-even {
+  background-color: #ffffff !important; /* White */
+}
+
+.tabulator-data-tree-control {
+  background-color: var(--tblr-primary) !important;
+  padding: 7px;
+}
+
+.tabulator-row
+  .tabulator-cell
+  .tabulator-data-tree-control
+  .tabulator-data-tree-control-collapse:after {
+  background-color: white !important;
+}
+
+.tabulator-row
+  .tabulator-cell
+  .tabulator-data-tree-control
+  .tabulator-data-tree-control-expand {
+  background-color: white !important;
+}
+.tabulator-row
+  .tabulator-cell
+  .tabulator-data-tree-control
+  .tabulator-data-tree-control-expand:after {
+  background-color: white !important;
+}
+
+.tabulator-data-tree-branch {
+  border-bottom: 1px solid red !important;
+  border-left: 1px solid red !important;
+}
+
+/*  */
+
+/* === Tabulator Tree Icon Fix === */
+.tabulator-data-tree-control {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px !important;
+  height: 12px !important;
+  border-radius: 3px;
+  border: 1px solid var(--tblr-border-color, #ccc);
+  background-color: #fff !important;
+  cursor: pointer;
+  position: relative;
+}
+
+/* plus/minus icons - with higher specificity to override conflicting rules */
+.tabulator-row .tabulator-cell .tabulator-data-tree-control-expand::after,
+.tabulator-row .tabulator-cell .tabulator-data-tree-control-collapse::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) translateX(1px); /* slight right shift */
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1;
+  color: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background: none;
+}
+
+.tabulator-data-tree-control-collapse:after,
+.tabulator-data-tree-control-expand::after {
+  left: 0 !important;
+}
+
+/* specific symbols */
+.tabulator-row .tabulator-cell .tabulator-data-tree-control-expand::after {
+  content: "+" !important;
+}
+
+.tabulator-row .tabulator-cell .tabulator-data-tree-control-collapse::after {
+  content: "–" !important;
+}
+
+/* === Custom Scrollbar for Tabulator or Tabler Tables === */
+.tabulator-tableholder::-webkit-scrollbar {
+  width: 8px; /* vertical scrollbar width */
+  height: 8px; /* horizontal scrollbar height */
+}
+
+.tabulator-tableholder::-webkit-scrollbar-track {
+  background: var(--tblr-light-bg-subtle, #f1f1f1);
+  border-radius: 10px;
+}
+
+.tabulator-tableholder::-webkit-scrollbar-thumb {
+  background-color: var(--tblr-primary, #007bff);
+  border-radius: 10px;
+  border: 2px solid var(--tblr-light-bg-subtle, #f1f1f1);
+}
+
+.tabulator-tableholder::-webkit-scrollbar-thumb:hover {
+  background-color: var(--tblr-primary-dark, #0056b3);
+}
+
+/* === Firefox support === */
+.tabulator-tableholder {
+  scrollbar-color: var(--tblr-primary, #007bff)
+    var(--tblr-light-bg-subtle, #f1f1f1);
+  scrollbar-width: thin;
+}
+
+.tabulator-cell {
+  border-right: 1px solid #e6e6e6 !important; /* light grey */
+}

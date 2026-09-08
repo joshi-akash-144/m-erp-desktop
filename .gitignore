@@ -1,0 +1,39 @@
+# Node / Electron
+node_modules/
+dist/
+out/
+release/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Laravel
+runtime/Laravel/vendor/
+runtime/Laravel/node_modules/
+runtime/Laravel/.env
+runtime/Laravel/storage/logs/
+
+# MySQL database data
+runtime/mysql/data/
+runtime/mysql/*/data/
+runtime/mysql/backup/
+
+# MySQL runtime files
+runtime/mysql/*.pid
+runtime/mysql/*.log
+runtime/mysql/aria_log.*
+runtime/mysql/ib_logfile*
+runtime/mysql/ibtmp*
+runtime/mysql/ib_buffer_pool

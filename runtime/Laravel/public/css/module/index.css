@@ -1,0 +1,214 @@
+:root {
+  --border-color: #e5e7eb;
+  --text-primary: #1f2937;
+  --text-secondary: #6b7280;
+  --bg-gray-50: #f9fafb;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --text-purple-1: #6A4761;
+  --text-purple-2: #432C3D;
+  --bg-purple: rgba(106, 71, 97, 0.14);
+  --text-brown-1: #A06340;
+  --text-brown-2: #D98F66;
+  --bg-brown: rgba(160, 99, 64, 0.14);
+  --text-pink-1: #C7748D;
+  --text-pink-2: #9C4F66;
+  --bg-pink: linear-gradient(90deg, rgba(199, 116, 141, 0.1), rgba(156, 79, 102, 0.1));
+  --text-emerald-1: #4C5C8C;
+  --text-emerald-2: #2C3654;
+  --bg-emerald: rgba(76, 92, 140, 0.14);
+}
+
+/* Grid Layout */
+.grid-row {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.grid-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-label {
+  font-size: 0.925rem;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+}
+
+table.table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+table.table th,
+table.table td {
+  border: 1px solid var(--border-color);
+}
+
+table.table th {
+  font-weight: 600;
+  font-size: 0.9rem;
+  background-color: #e6f0fb;
+  color: var(--text-primary);
+  text-transform: capitalize;
+}
+
+table.table td {
+  padding: 0.1rem;
+  align-content: center;
+}
+
+.module-table-responsive {
+  width: 100%;
+  overflow-x: scroll;
+  -webkit-overflow-scrolling: touch;
+  padding: 5px;
+}
+
+@media (max-width: 768px) {
+  table.table th,
+  table.table td {
+    white-space: nowrap;
+    font-size: 0.875rem;
+    padding: 0.4rem;
+  }
+
+  .table-responsive::-webkit-scrollbar {
+    height: 8px;
+  }
+
+  .table-responsive::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 10px;
+  }
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--input-focus);
+  box-shadow: 0 0 0 3px rgba(219, 6, 80, 0.1);
+  outline: none;
+}
+
+.form-control:disabled {
+  background-color: var(--bg-gray-50);
+  color: var(--text-secondary);
+  cursor: not-allowed;
+}
+
+.form-control::placeholder {
+  color: #9ca3af;
+  font-size: 0.875rem;
+}
+
+.module-page-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #066fd1;
+  display: flex;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.module-form-section {
+  background: #f5f5f5;
+  padding: 10px 10px;
+  margin-bottom: 10px;
+  transition: all 0.3s;
+  border-radius: 5px;
+  border-top: 2px solid #066fd1;
+}
+
+/* Remove Message label */
+.just-validate-error-label { display: none !important; }
+.just-validate-error-field {
+  border: 1px solid #dc3545 !important;
+  background-color: #fff6f6 !important;
+}
+
+
+
+#withHeaderCheck{    
+    width: 21px;
+    height: 20px;
+    position: relative;
+    top: 5px;  
+}
+/* ----- Godown ----- */
+.btn-godown{
+    background:linear-gradient(90deg,var(--text-purple-1),var(--text-purple-2));
+    color: #fff !important;
+}
+.btn-godown:hover{
+    color: #fff;
+}
+.text-godown{
+color:var(--text-purple-1);
+}
+.border-godown{
+border-color:var(--text-purple-1) !important;
+}
+.section-godown{
+    background-color:var(--bg-purple);
+}
+
+/* ----- Sales ----- */
+.text-sales{
+color:var(--text-brown-1);
+}
+.border-sales{
+border-color:var(--text-brown-1) !important;
+}
+.section-sales{
+background-color: var(--bg-brown);
+}
+.btn-sales{
+    background:linear-gradient(90deg,var(--text-brown-1),var(--text-brown-2)) !important;
+    color: #fff !important;
+}
+.btn-sales:hover{
+    color: #fff;
+}
+
+/* Dairy Analysis */
+  .text-dairy-analysis{
+    color: var(--text-pink-2);
+  }
+  .border-dairy-analysis{
+    border-color:var(--text-pink-2) !important;
+  }
+  .section-dairy-analysis{
+    background: var(--bg-pink);
+  }
+  .btn-dairy-analysis{
+    background:linear-gradient(90deg,var(--text-pink-1),var(--text-pink-2)) !important;
+    color: #fff !important;
+  }
+  .btn-dairy-analysis:hover{
+    color: #fff;
+    }
+
+  /* ----- Purchase ----- */
+  .text-purchase{
+      color: var(--text-emerald-2);
+  }
+
+  .border-purchase{
+      border-color: var(--text-emerald-2) !important;
+  }
+
+  .section-purchase{
+      background: #BCDAF0;
+  }
+
+  .btn-purchase{
+      background: linear-gradient(90deg,var(--text-emerald-1),var(--text-emerald-2)) !important;
+      color:#fff !important;
+  }
+
+  .btn-purchase:hover{
+      color:#fff;
+  }

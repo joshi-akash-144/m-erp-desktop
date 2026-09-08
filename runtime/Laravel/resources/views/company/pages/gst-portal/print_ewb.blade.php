@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>E-Way Bill — {{ $ewb->ewb_no }}</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: Arial, sans-serif; font-size: 13px; color: #222; background: #e8e8e8; }
+
+        .page-wrap { padding: 20px; }
+
+        .ewb-card {
+            max-width: 720px;
+            margin: 0 auto;
+            background: #fff;
+            border: 1px solid #bbb;
+            padding: 20px 28px 28px;
+        }
+
+        /* Print button */
+        .print-bar { text-align: right; margin-bottom: 14px; }
+        .print-btn {
+            background: #1a3a5c; color: #fff; border: none;
+            padding: 6px 20px; border-radius: 3px; cursor: pointer;
+            font-size: 13px; font-weight: 600;
+        }
+
+        /* Title */
+        .ewb-title { text-align: center; font-size: 20px; font-weight: 700; letter-spacing: .5px; margin-bottom: 10px; }
+
+        /* QR code area */
+        .qr-wrap { text-align: center; margin-bottom: 12px; }
+
+        /* Two-column info table */
+        .info-table { width: 100%; border-collapse: collapse; margin-bottom: 0; }
+        .info-table td { padding: 4px 8px; border: 1px solid #ccc; vertical-align: top; }
+        .info-table .lbl { color: #2e5fa3; font-size: 12px; width: 38%; }
+        .info-table .val { font-weight: 600; font-size: 12px; }
+
+        /* Section header rows */
+        .sec-hdr td { font-weight: 700; font-size: 13px; padding: 5px 8px; border: 1px solid #ccc; background: #fff; }
+
+        /* Part B table */
+        .partb-table { width: 100%; border-collapse: collapse; }
+        .partb-table th {
+            background: #f4f4f4; font-size: 11px; font-weight: 700;
+            padding: 5px 6px; border: 1px solid #ccc; text-align: left;
+        }
+        .partb-table td { font-size: 12px; padding: 5px 6px; border: 1px solid #ccc; }
+
+        /* Barcode area */
+        .barcode-wrap { text-align: center; margin-top: 20px; }
+        .barcode-label { font-size: 11px; margin-top: 4px; color: #444; }
+
+        @media print {
+            body { background: #fff; }
+            .print-bar { display: none; }
+            .page-wrap { padding: 0; }
+            .ewb-card { border: none; padding: 10px; max-width: 100%; }
+            @page { size: A4 portrait; margin: 10mm; }
+        }
+    </style>
+</head>
+<body>
+<div class="page-wrap">
+<div class="ewb-card">
+
+    {{-- Print button --}}
+    {{-- <div class="print-bar">
+        <button class="print-btn" onclick="window.print()">🖨 Print</button>
+    </div> --}}
+
+    {{-- Title --}}
+    <div class="ewb-title">E-Way Bill</div>
+
+    {{-- QR Code --}}
+    <div class="qr-wrap">
+        <div id="qrDiv" style="display:inline-block;"></div>
+    </div>
+
+    @php
+        $modes    = ['1' => 'ROAD', '2' => 'RAIL', '3' => 'AIR', '4' => 'SHIP'];
+        $transMode = $modes[$ewb->trans_mode ?? ''] ?? strtoupper($ewb->trans_mode ?? 'ROAD');
+
+        // Supplier info
+        $supGstin = $company->gst_number ?? '';
+        $supName  = strtoupper($company->name ?? '');
+        $supPlace = strtoupper(collect([$company->city ?? $company->address_one, $company->postal_code])->filter()->implode(' - '));
+
+        // Recipient info
+        $recGstin = $invoice?->account?->taxDetail?->gst_number ?? 'URP';
+        $recName  = strtoupper($invoice?->account?->name ?? '');
+        $recPlace = strtoupper(collect([$invoice?->account?->city, $invoice?->account?->postal_code])->filter()->implode(' - '));
+
+        // Document info — use IRN doc_no if available, else reference_number
+        $docNo   = $ewb->eInvoice?->doc_no ?? $invoice?->reference_number ?? '';
+        $docDate = $invoice?->invoice_date ? \Carbon\Carbon::parse($invoice->invoice_date)->format('d/m/Y') : '—';
+
+        // First item HSN
+        $firstItem = $invoice?->details?->first();
+        $hsnCode   = $firstItem?->item?->hsn_sac_code ?? '—';
+        $hsnName   = strtoupper($firstItem?->item?->name ?? '');
+
+        // Transporter display
+        $transpDisplay = collect([$supGstin, $ewb->transporter_name ?: ($ewb->transporter_id ?: 'SELF')])->filter()->implode(' & ');
+
+        // Vehicle / trans doc display for Part B
+        $vehDisplay = collect([$ewb->vehicle_no, $ewb->trans_doc_no, $ewb->trans_doc_date ? \Carbon\Carbon::parse($ewb->trans_doc_date)->format('d/m/Y') : null])->filter()->implode(' & ');
+    @endphp
+
+    {{-- ─── Top info rows ──────────────────────────────────── --}}
+    <table class="info-table">
+        <tr>
+            <td class="lbl">E-Way Bill No:</td>
+            <td class="val">{{ $ewb->ewb_no }}</td>
+        </tr>
+        <tr>
+            <td class="lbl">E-Way Bill Date:</td>
+            <td class="val">{{ $ewb->ewb_date ? \Carbon\Carbon::parse($ewb->ewb_date)->format('d/m/Y h:i A') : '—' }}</td>
+        </tr>
+        <tr>
+            <td class="lbl">Generated By:</td>
+            <td class="val">{{ $supGstin }} - {{ $supName }}</td>
+        </tr>
+        <tr>
+            <td class="lbl">Valid From:</td>
+            <td class="val">
+                {{ $ewb->ewb_date ? \Carbon\Carbon::parse($ewb->ewb_date)->format('d/m/Y h:i A') : '—' }}
+                @if($invoice?->kms) &nbsp;[ {{ $invoice->kms }} Kms ] @endif
+            </td>
+        </tr>
+        <tr>
+            <td class="lbl">Valid Until:</td>
+            <td class="val">{{ $ewb->valid_upto ? \Carbon\Carbon::parse($ewb->valid_upto)->format('d/m/Y') : '—' }}</td>
+        </tr>
+    </table>
+
+    {{-- ─── Part A ─────────────────────────────────────────── --}}
+    <table class="info-table" style="margin-top:10px;">
+        <tr class="sec-hdr"><td colspan="2">Part - A</td></tr>
+        <tr>
+            <td class="lbl">GSTIN of Supplier</td>
+            <td class="val">{{ $supGstin }}, {{ $supName }}</td>
+        </tr>
+        <tr>
+            <td class="lbl">Place of Dispatch</td>
+            <td class="val">{{ $supPlace ?: '—' }}</td>
+        </tr>
+        <tr>
+            <td class="lbl">GSTIN of Recipient</td>
+            <td class="val">{{ $recGstin }}{{ $recName ? ', '.$recName : '' }}</td>
+        </tr>
+        <tr>
+            <td class="lbl">Place of Delivery</td>
+            <td class="val">{{ $recPlace ?: '—' }}</td>
+        </tr>
+        <tr>
+            <td class="lbl">Document No.</td>
+            <td class="val">{{ $docNo }}</td>
+        </tr>
+        <tr>
+            <td class="lbl">Document Date</td>
+            <td class="val">{{ $docDate }}</td>
+        </tr>
+        <tr>
+            <td class="lbl">Transaction Type</td>
+            <td class="val">INV</td>
+        </tr>
+        <tr>
+            <td class="lbl">Value of Goods</td>
+            <td class="val">{{ formatIndianNumber($invoice?->grand_total) }}</td>
+        </tr>
+        <tr>
+            <td class="lbl">HSN Code</td>
+            <td class="val">{{ $hsnCode }}{{ $hsnName ? ' - '.$hsnName : '' }}</td>
+        </tr>
+        <tr>
+            <td class="lbl">Reason for Transportation</td>
+            <td class="val">Outward - Supply</td>
+        </tr>
+        <tr>
+            <td class="lbl">Transporter</td>
+            <td class="val">{{ $transpDisplay }}</td>
+        </tr>
+    </table>
+
+    {{-- ─── Part B ─────────────────────────────────────────── --}}
+    <table class="info-table" style="margin-top:10px;">
+        <tr class="sec-hdr"><td colspan="2">Part - B</td></tr>
+    </table>
+    <table class="partb-table">
+        <thead>
+            <tr>
+                <th>Mode</th>
+                <th>Vehicle / Trans<br>Doc No &amp; Dt.</th>
+                <th>From</th>
+                <th>Entered Date</th>
+                <th>Entered By</th>
+                <th>CEWB No.<br>(if any)</th>
+                <th>Multi Veh.Info<br>(if any)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>{{ $transMode }}</td>
+                <td>{{ $vehDisplay ?: '—' }}</td>
+                <td>{{ strtoupper($company->city ?? $company->address_one ?? '—') }}</td>
+                <td>{{ $ewb->ewb_date ? \Carbon\Carbon::parse($ewb->ewb_date)->format('d/m/Y h:i A') : '—' }}</td>
+                <td>{{ $supGstin }}</td>
+                <td>-</td>
+                <td>-</td>
+            </tr>
+        </tbody>
+    </table>
+
+    {{-- ─── Barcode ─────────────────────────────────────────── --}}
+    <div class="barcode-wrap">
+        <svg id="barcode"></svg>
+        <div class="barcode-label">{{ $docNo }}</div>
+    </div>
+
+</div>
+</div>
+
+{{-- qrcodejs — renders synchronously into a div --}}
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+{{-- JsBarcode --}}
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+<script>
+    // QR Code — synchronous render
+    new QRCode(document.getElementById('qrDiv'), {
+        text      : '{{ $ewb->ewb_no }}',
+        width     : 110,
+        height    : 110,
+        colorDark : '#000000',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M,
+    });
+
+    // Barcode — synchronous render
+    JsBarcode('#barcode', '{{ addslashes($docNo) }}', {
+        format      : 'CODE128',
+        width       : 2,
+        height      : 55,
+        displayValue: false,
+        margin      : 4,
+    });
+
+    // Small delay lets the browser paint QR + barcode before the print dialog opens
+    setTimeout(function () { window.print(); }, 400);
+
+    // Close the tab automatically when the print dialog is dismissed
+    window.addEventListener('afterprint', function () { window.close(); });
+</script>
+</body>
+</html>

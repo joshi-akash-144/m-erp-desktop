@@ -1,0 +1,28 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('modules', function (Blueprint $table) {
+            $table->id();
+            $table->string('name')->unique()->comment('Unique key matching company_menu title slug');
+            $table->string('title');
+            $table->string('icon')->nullable();
+            $table->string('color', 30)->nullable();
+            $table->string('bg', 50)->nullable();
+            $table->unsignedSmallInteger('order')->default(0);
+            $table->boolean('is_active')->default(true);
+            $table->timestamps();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('modules');
+    }
+};

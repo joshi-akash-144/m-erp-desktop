@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" style="width: {{ $size ?? 24 }}px; height: {{ $size ?? 24 }}px;" viewBox="0 0 24 24"
+     fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="5" y="11" width="14" height="10" rx="2" ry="2"></rect>
+    <path d="M12 16v2"></path>
+    <path d="M8 11V7a4 4 0 0 1 8 0v4"></path>
+</svg>

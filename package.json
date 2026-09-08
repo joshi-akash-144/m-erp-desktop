@@ -1,0 +1,48 @@
+{
+  "name": "m-erp-desktop-electron",
+  "version": "1.0.0",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder"
+  },
+  "keywords": [],
+  "author": {
+    "name": "Shree Mahakali Agro Feed",
+    "email": "akashmahakali144@gmail.com"
+  },
+  "homepage": "http://127.0.0.1:8000",
+  "license": "ISC",
+  "description": "M ERP Desktop Application",
+  "devDependencies": {
+    "electron": "^41.10.7",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "com.merp.desktop",
+    "productName": "M ERP",
+    "asar": true,
+    "extraResources": [
+      {
+        "from": "runtime",
+        "to": "runtime"
+      }
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "linux": {
+      "target": [
+        "deb"
+      ],
+      "category": "Office"
+    }
+  },
+  "allowScripts": {
+    "electron@41.10.7": true
+  }
+}

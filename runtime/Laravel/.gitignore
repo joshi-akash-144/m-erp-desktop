@@ -1,0 +1,91 @@
+# ========================================
+# Laravel Files & Folders
+# ========================================
+/vendor/
+composer.lock
+.env
+# .env.*
+.phpunit.result.cache
+.phpunit.cache
+/storage/*.key
+/storage/pail
+/storage/app/public/*
+!/storage/app/public/.gitignore
+/storage/framework/*
+!/storage/framework/.gitignore
+/storage/logs/*
+!/storage/logs/.gitignore
+# /public/storage
+# /public/hot
+# /public/mix-manifest.json
+bootstrap/cache/*
+!/bootstrap/cache/.gitignore
+
+# ========================================
+# Public Folder Exceptions
+# ========================================
+# !/public/assets
+# !/public/assets/*
+# /public/css
+# /public/js
+# Optional: Keep specific JSONs only
+#/public/assets/json/*
+#!/public/assets/json/search-vertical.json
+#!/public/assets/json/search-horizontal.json
+
+# ========================================
+# Vite & Node
+# ========================================
+/node_modules/
+npm-debug.log
+yarn-error.log
+pnpm-debug.log
+/.vite
+
+# ========================================
+# Editor & IDE Settings
+# ========================================
+*.sublime-project
+*.sublime-workspace
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+.fleet/
+.zed/
+.nova/
+
+# ========================================
+# Static Analysis / Lint / Formatting Tools
+# ========================================
+.editorconfig
+.eslintignore
+.eslintrc.json
+.prettierignore
+.prettierrc.json
+.stylelintignore
+.stylelintrc.json
+
+# ========================================
+# Miscellaneous
+# ========================================
+*.log
+*.swp
+*.bak
+auth.json
+Homestead.json
+Homestead.yaml
+docker-compose.override.yml
+
+# ========================================
+# Laravel Telescope (Optional)
+# ========================================
+storage/telescope/*
+
+# ========================================
+# Keep Specific Files Only
+# ========================================
+/resources/assets/vendor/fonts/flags/**
+/resources/assets/vendor/fonts/fontawesome/**
+!/resources/assets/vendor/js/template-customizer.js
+storage

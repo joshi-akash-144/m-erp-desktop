@@ -1,0 +1,768 @@
+/**
+ * ===========================================================
+ * OverWrite Root
+ * ===========================================================
+ */
+:root {
+  --input-border-color: #dee2e6;
+  --input-focus-border: #066fd1;
+  --input-focus-bg: #fffbea;
+  --input-border-color-focus: purple;
+  --input-border-color-focus-width: 2px;
+}
+
+.font-monospace {
+  font-family: var(--tblr-font-monospace);
+}
+
+.font-inter {
+  font-family: var(--tblr-font-sans-serif);
+}
+
+/**
+ * ===========================================================
+ * Input Css Overwrite
+ * ===========================================================
+ */
+/* Normal text input */
+/* Base input style for text and number */
+input[type="text"],
+input[type="number"] {
+  box-shadow: none !important;
+  font-family: var(--tblr-font-sans-serif);
+  font-size: 1rem !important;
+  padding: 0.375rem 0.75rem !important;
+}
+
+/* Focused input style */
+input[type="text"]:focus,
+input[type="number"]:focus {
+  box-shadow: none !important;
+  border-color: var(--input-border-color-focus) !important;
+  background-color: #fffbea !important;
+  outline: none !important;
+  border-width: var(--input-border-color-focus-width) !important;
+  /* transition: all 0.2s ease; */
+  font-family: var(--tblr-font-sans-serif);
+  font-size: 1rem !important;
+  padding: 0.375rem 0.75rem !important;
+}
+
+/* Autofill styling for Chrome/Safari */
+input[type="text"]:-webkit-autofill,
+input[type="number"]:-webkit-autofill,
+input[type="text"]:-webkit-autofill:focus,
+input[type="number"]:-webkit-autofill:focus,
+input[type="text"]:-webkit-autofill:active,
+input[type="number"]:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0px 1000px #fffbea inset !important;
+  box-shadow: 0 0 0px 1000px #fffbea inset !important;
+  border-color: #066fd1 !important;
+  border-width: 1px !important;
+  outline: none !important;
+  -webkit-text-fill-color: inherit !important;
+  transition: background-color 5000s ease-in-out 0s;
+  font-family: var(--tblr-font-sans-serif);
+  padding: 0.375rem 0.75rem !important;
+}
+
+
+::selection {
+  background: #fff3c4;
+  /* soft yellow highlight */
+  color: #000;
+}
+
+::-webkit-selection {
+  background: #fff3c4;
+  color: #000;
+}
+
+.form-select:disabled {
+  cursor: not-allowed !important;
+  user-select: none !important;
+  padding: 0.375rem 0.75rem !important;
+
+}
+
+.readonly {
+  background-color: #f8f9fa !important;
+  /* light gray like Bootstrap .bg-light */
+  cursor: not-allowed !important;
+  user-select: none !important;
+}
+
+/**
+ * ===========================================================
+ * GLOBAL PAGE LOADER (ERP STYLE)
+ * ===========================================================
+ */
+
+body.loading::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.65);
+  z-index: 9998;
+  backdrop-filter: blur(2px);
+}
+
+/* Card container */
+body.loading::after {
+  content: "";
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 260px;
+  height: 120px;
+  background: #ffffff;
+  border-radius: 1rem;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeInUp 0.3s ease-out forwards;
+}
+
+/* Spinner + Text inside card */
+body.loading .loader-content {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--tblr-font-sans-serif);
+}
+
+/* Spinner animation */
+.loader-spinner {
+  width: 38px;
+  height: 38px;
+  border: 4px solid #d9e9ff;
+  border-top-color: #066fd1;
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+
+.loader-text {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #066fd1;
+  letter-spacing: 0.5px;
+  text-align: center;
+  max-width: 220px;
+  /* limit width */
+  word-wrap: break-word;
+  /* allow wrapping */
+  white-space: normal;
+  /* allow multiple lines */
+}
+
+/* Animations */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -60%);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
+
+/**
+ * ===========================================================
+ * Tabulator Grid Button
+ * ===========================================================
+ */
+
+.erp-btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  text-decoration: none;
+  position: relative;
+}
+
+.erp-btn-icon .icon {
+  transition: transform 0.2s ease;
+}
+
+/* View button - Blue */
+.erp-btn-icon.view {
+  color: #206bc4;
+}
+
+.erp-btn-icon.view:hover {
+  background: #e6f0ff;
+  border-color: #b3d4ff;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(32, 107, 196, 0.15);
+}
+
+.erp-btn-icon.print {
+  color: #7a20c4;
+}
+
+.erp-btn-icon.print:hover {
+  background: #f2e6ff;
+  border-color: #d4b3ff;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(122, 32, 196, 0.15);
+}
+
+/* Add button - Blue */
+.erp-btn-icon.add {
+  color: #206bc4;
+}
+
+.erp-btn-icon.add:hover {
+  background: #e6f0ff;
+  border-color: #b3d4ff;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(32, 107, 196, 0.15);
+}
+
+
+
+/* Edit button - Orange */
+.erp-btn-icon.edit {
+  color: #f76707;
+}
+
+.erp-btn-icon.edit:hover {
+  background: #fff7e6;
+  border-color: #ffe8b3;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(247, 103, 7, 0.15);
+}
+
+/* Delete button - Red */
+.erp-btn-icon.delete {
+  color: #d63939;
+}
+
+.erp-btn-icon.delete:hover {
+  background: #ffe6e6;
+  border-color: #ffcccc;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(214, 57, 57, 0.15);
+}
+
+/* Restore button - Green */
+.erp-btn-icon.restore {
+  color: #2fb344;
+}
+
+.erp-btn-icon.restore:hover {
+  background: #e6ffec;
+  border-color: #b3ffcc;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(47, 179, 68, 0.15);
+}
+
+/* Download button - Blue */
+.erp-btn-icon.download {
+  color: #206bc4;
+}
+
+.erp-btn-icon.download:hover {
+  background: #e6f0ff;
+  border-color: #b3d4ff;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(32, 107, 196, 0.15);
+}
+
+/* Hover animation for icon */
+.erp-btn-icon:hover .icon {
+  transform: scale(1.08);
+}
+
+/* Active state */
+.erp-btn-icon:active {
+  transform: translateY(0);
+}
+
+/* Disabled state */
+.erp-btn-icon:disabled,
+.erp-btn-icon.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Button group spacing */
+.erp-btn-group {
+  display: inline-flex;
+  gap: 3px;
+}
+
+/**
+ * ===========================================================
+ * GLOBAL VIEW MODE STYLING
+ * ===========================================================
+ */
+
+.view-mode .form-control[readonly],
+.view-mode .form-select:disabled {
+  background-color: #f8f9fa !important;
+  /* subtle gray background  */
+  border: 1px solid #dee2e6 !important;
+  /* border-radius: 6px;s */
+  color: #71717a !important;
+  cursor: default !important;
+  font-weight: 600;
+  box-shadow: none !important;
+  transition: background-color 0.2s ease;
+}
+
+.view-mode .form-control[readonly]:focus,
+.view-mode .form-select:disabled:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Label styling */
+.view-mode .form-label {
+  font-weight: 500;
+  color: #495057;
+}
+
+/* =========================
+* TOMSELECT READ-ONLY LOOK
+========================= */
+
+.view-mode .ts-wrapper {
+  opacity: 1;
+}
+
+.view-mode .ts-wrapper .ts-control {
+  background-color: #f8f9fa !important;
+  border: 1px solid #dee2e6 !important;
+  border-radius: 6px !important;
+  cursor: default !important;
+  min-height: 38px;
+  color: #212529;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  padding: 0.25rem 0.5rem;
+}
+
+.view-mode .ts-wrapper .ts-control>.item {
+  color: #212529;
+  font-weight: 600;
+}
+
+.view-mode .ts-wrapper .ts-control::after {
+  display: none !important;
+  /* hide dropdown arrow */
+}
+
+/* Disable hover/active highlights */
+.view-mode .ts-wrapper .ts-control:hover,
+.view-mode .ts-wrapper .ts-control:focus {
+  border-color: #dee2e6 !important;
+  background-color: #f8f9fa !important;
+  box-shadow: none !important;
+}
+
+/* Button section */
+.view-mode .modal-footer button:not([data-bs-dismiss]) {
+  display: none;
+  /* hide Save/Update buttons */
+}
+
+/* =========================
+* Master Form Css
+========================= */
+
+.master-modal-content {
+  border-radius: 0px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+}
+
+.master-section-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #066fd1;
+  display: flex;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.master-section-title svg {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #066fd1;
+  width: 25px;
+  height: 25px;
+  color: #ffffff;
+  border-radius: 8px;
+  padding: 4px;
+  margin-right: 10px;
+  font-size: 15px;
+}
+
+.master-form-section {
+  background: #fafafa;
+  border-radius: 5px;
+  padding: 10px 10px;
+  margin-bottom: 10px;
+  border: 1px solid #066fd1;
+  transition: all 0.3s;
+}
+
+.master-modal-footer {
+  background-color: #fafafa;
+}
+
+@keyframes pulse {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* ========================================
+   PROFESSIONAL FORM VALIDATION STYLES
+   ======================================== */
+
+/* Invalid Field Styling - All Form Elements */
+input.just-validate-error-field,
+textarea.just-validate-error-field,
+select.just-validate-error-field,
+.just-validate-error-field {
+  border: 2px solid #dc3545 !important;
+  background-color: #ffffff !important;
+  transition: border-color 0.2s ease;
+}
+
+/* Focus State for Invalid Fields - Clean, No Shadow */
+input.just-validate-error-field:focus,
+textarea.just-validate-error-field:focus,
+select.just-validate-error-field:focus,
+.just-validate-error-field:focus {
+  outline: none !important;
+  border: 2px solid #c82333 !important;
+  box-shadow: none !important;
+  background-color: #ffffff !important;
+}
+
+/* Error Message Label */
+.just-validate-error-label {
+  color: #dc3545 !important;
+  font-size: 0.875rem !important;
+  margin-top: 6px !important;
+  display: block !important;
+  font-weight: 500 !important;
+  line-height: 1.4 !important;
+}
+
+/* Warning Icon Before Error Message */
+.just-validate-error-label::before {
+  content: "⚠" !important;
+  margin-right: 6px !important;
+  font-weight: bold !important;
+}
+
+
+
+/* Checkbox & Radio Validation */
+/* input[type="checkbox"].just-validate-error-field,
+input[type="radio"].just-validate-error-field {
+  outline: 2px solid #dc3545 !important;
+  outline-offset: 2px !important;
+} */
+
+/* File Input Validation */
+input[type="file"].just-validate-error-field {
+  border: 2px solid #dc3545 !important;
+  border-radius: 4px !important;
+  padding: 8px !important;
+}
+
+/* Select Dropdown Professional Styling */
+select.just-validate-error-field {
+  appearance: none !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23dc3545' d='M6 9L1 4h10z'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 12px center !important;
+  padding-right: 36px !important;
+}
+
+/* Remove Browser Default Validation Styles */
+input:invalid,
+textarea:invalid,
+select:invalid {
+  box-shadow: none !important;
+}
+
+/* Disabled State - Keep Professional */
+input.just-validate-error-field:disabled,
+textarea.just-validate-error-field:disabled,
+select.just-validate-error-field:disabled {
+  border-color: #e9ecef !important;
+  background-color: #f8f9fa !important;
+  opacity: 0.6 !important;
+  cursor: not-allowed !important;
+}
+
+/* Form Group Spacing */
+.form-group {
+  margin-bottom: 1.5rem !important;
+}
+
+/* ========================================
+   SELECT2 VALIDATION STYLES
+   ======================================== */
+
+/* Target the select that has error class + its Select2 wrapper */
+select.just-validate-error-field+.select2-container .select2-selection,
+.just-validate-error-field+.select2-container .select2-selection,
+select.just-validate-error-field~.select2-container .select2-selection,
+.just-validate-error-field~.select2-container .select2-selection,
+.select2-container.has-error .select2-selection {
+  border: 2px solid #dc3545 !important;
+  background-color: #ffffff !important;
+  transition: border-color 0.2s ease;
+}
+
+/* Select2 Focus - Error State */
+select.just-validate-error-field+.select2-container.select2-container--open .select2-selection,
+select.just-validate-error-field+.select2-container.select2-container--focus .select2-selection,
+.just-validate-error-field+.select2-container.select2-container--open .select2-selection,
+.just-validate-error-field+.select2-container.select2-container--focus .select2-selection,
+select.just-validate-error-field~.select2-container.select2-container--open .select2-selection,
+select.just-validate-error-field~.select2-container.select2-container--focus .select2-selection,
+.just-validate-error-field~.select2-container.select2-container--open .select2-selection,
+.just-validate-error-field~.select2-container.select2-container--focus .select2-selection,
+.select2-container.has-error.select2-container--open .select2-selection,
+.select2-container.has-error.select2-container--focus .select2-selection {
+  outline: none !important;
+  border: 2px solid #c82333 !important;
+  box-shadow: none !important;
+  background-color: #ffffff !important;
+}
+
+/* Select2 Dropdown - Error State */
+select.just-validate-error-field+.select2-container .select2-dropdown,
+.just-validate-error-field+.select2-container .select2-dropdown,
+select.just-validate-error-field~.select2-container .select2-dropdown,
+.just-validate-error-field~.select2-container .select2-dropdown {
+  border: 2px solid #dc3545 !important;
+  border-top: none !important;
+}
+
+/* ========================================
+   TOM SELECT VALIDATION STYLES
+   ======================================== */
+
+/* Target the select that has error class + its Tom Select wrapper */
+select.just-validate-error-field+.ts-wrapper .ts-control,
+.just-validate-error-field+.ts-wrapper .ts-control,
+.ts-wrapper.has-error .ts-control {
+  border: 2px solid #dc3545 !important;
+  background-color: #ffffff !important;
+  transition: border-color 0.2s ease;
+}
+
+/* Tom Select Focus - Error State */
+select.just-validate-error-field+.ts-wrapper.focus .ts-control,
+select.just-validate-error-field+.ts-wrapper.input-active .ts-control,
+.just-validate-error-field+.ts-wrapper.focus .ts-control,
+.ts-wrapper.has-error.focus .ts-control,
+.ts-wrapper.has-error.input-active .ts-control {
+  outline: none !important;
+  border: 2px solid #c82333 !important;
+  box-shadow: none !important;
+  background-color: #ffffff !important;
+}
+
+/* Tom Select Dropdown - Error State */
+select.just-validate-error-field+.ts-wrapper .ts-dropdown,
+.just-validate-error-field+.ts-wrapper .ts-dropdown,
+.ts-wrapper.has-error .ts-dropdown {
+  border: 2px solid #dc3545 !important;
+  border-top: none !important;
+}
+
+/* Tom Select Items (Selected Tags) - Error State */
+select.just-validate-error-field+.ts-wrapper.multi .ts-control>div,
+.just-validate-error-field+.ts-wrapper.multi .ts-control>div,
+.ts-wrapper.has-error.multi .ts-control>div {
+  background: #dc3545 !important;
+  color: #ffffff !important;
+  border: none !important;
+}
+
+/* Tom Select Placeholder - Error State */
+select.just-validate-error-field+.ts-wrapper .ts-control input::placeholder,
+.just-validate-error-field+.ts-wrapper .ts-control input::placeholder,
+.ts-wrapper.has-error .ts-control input::placeholder {
+  color: #dc3545 !important;
+  opacity: 0.6 !important;
+}
+
+/* Tom Select Disabled - Error State */
+select.just-validate-error-field+.ts-wrapper.disabled .ts-control,
+.just-validate-error-field+.ts-wrapper.disabled .ts-control,
+.ts-wrapper.has-error.disabled .ts-control {
+  border-color: #e9ecef !important;
+  background-color: #f8f9fa !important;
+  opacity: 0.6 !important;
+  cursor: not-allowed !important;
+}
+
+/* Remove default Tom Select box-shadow on all states */
+.ts-wrapper.focus .ts-control,
+.ts-wrapper.input-active .ts-control {
+  box-shadow: none !important;
+}
+
+/* Alternative: If your validation library adds error class to parent div */
+.has-error .ts-wrapper .ts-control,
+.is-invalid+.ts-wrapper .ts-control {
+  border: 2px solid #dc3545 !important;
+  background-color: #ffffff !important;
+}
+
+.has-error .ts-wrapper.focus .ts-control,
+.is-invalid+.ts-wrapper.focus .ts-control {
+  border: 2px solid #c82333 !important;
+  box-shadow: none !important;
+}
+
+/* Responsive Font Sizes */
+@media (max-width: 576px) {
+  .just-validate-error-label {
+    font-size: 0.8rem !important;
+  }
+}
+
+th.required::after {
+  content: " *";
+  color: #d63939;
+  font-weight: bold;
+  margin-left: 0.25rem;
+}
+
+
+/**
+ * ===========================================================
+ * Textarea Css Overwrite (Same as input)
+ * ===========================================================
+ */
+
+/* Base textarea style */
+textarea {
+  box-shadow: none !important;
+  font-family: var(--tblr-font-sans-serif);
+  font-size: 1rem !important;
+  padding: 0.375rem 0.75rem !important;
+  resize: vertical;
+  /* Allow vertical resize only (optional) */
+}
+
+/* Focused textarea style */
+textarea:focus {
+  box-shadow: none !important;
+  border-color: #066fd1 !important;
+  background-color: #fffbea !important;
+  outline: none !important;
+  border-width: 1px !important;
+  transition: all 0.2s ease;
+  font-family: var(--tblr-font-sans-serif);
+  font-size: 1rem !important;
+  padding: 0.375rem 0.75rem !important;
+}
+
+/* Autofill styling for Chrome/Safari (textarea) */
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:focus,
+textarea:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0px 1000px #fffbea inset !important;
+  box-shadow: 0 0 0px 1000px #fffbea inset !important;
+  border-color: #066fd1 !important;
+  border-width: 1px !important;
+  outline: none !important;
+  -webkit-text-fill-color: inherit !important;
+  transition: background-color 5000s ease-in-out 0s;
+  font-family: var(--tblr-font-sans-serif);
+  padding: 0.375rem 0.75rem !important;
+}
+
+/* Remove arrows – Chrome/Safari/Edge */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Remove arrows – Firefox */
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+.locked-field {
+  pointer-events: none;
+  opacity: 0.6;
+  background-color: #e9ecef;
+  cursor: not-allowed;
+}
+
+/* Locked Select2 — read-only appearance */
+.select2-locked,
+.select2-locked * {
+  cursor: not-allowed !important;
+}
+
+.select2-locked .select2-selection {
+  background-color: #e9ecef !important;
+  border-color: #ced4da !important;
+}
+
+.select2-locked .select2-selection .select2-selection__rendered {
+  color: #495057 !important;
+}
+
+.select2-locked .select2-selection .select2-selection__arrow {
+  opacity: 0.4;
+}
+
+/* global backdrop style for modal */
+.modal-backdrop.show {
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  background-color: rgba(0, 0, 0, 0.4) !important;
+  opacity: 1 !important;
+}
