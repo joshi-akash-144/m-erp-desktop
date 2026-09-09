@@ -38,3 +38,5 @@ runtime/mysql/aria_log.*
 runtime/mysql/ib_logfile*
 runtime/mysql/ibtmp*
 runtime/mysql/ib_buffer_pool
+database-template/m_erp_desktop.sql
+

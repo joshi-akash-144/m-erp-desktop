@@ -33,7 +33,12 @@
       {
         "from": "runtime",
         "to": "runtime"
+      },
+      {
+        "from": "database-template",
+        "to": "database-template"
       }
+
     ],
     "win": {
       "target": "nsis"

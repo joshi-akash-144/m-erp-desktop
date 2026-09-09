@@ -171,11 +171,166 @@ setInterval(async () => {
     }
 }, 3000);
 
+function createDatabase() {
+    return new Promise((resolve, reject) => {
+
+        const mysqlClientPath = path.join(
+            path.dirname(mysqlPath),
+            "mysql.exe"
+        );
+
+        const process = spawn(
+            mysqlClientPath,
+            [
+                "-h", "127.0.0.1",
+                "-P", "3306",
+                "-u", "root",
+                "-e",
+                "CREATE DATABASE IF NOT EXISTS m_erp_desktop CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+            ],
+            {
+                cwd: path.dirname(mysqlClientPath),
+                windowsHide: true
+            }
+        );
+
+        let output = "";
+
+        process.stdout.on("data", data => {
+            console.log(
+                "Create DB:",
+                data.toString()
+            );
+        });
+
+        process.stderr.on("data", data => {
+            output += data.toString();
+
+            console.error(
+                "Create DB Error:",
+                data.toString()
+            );
+        });
+
+        process.on("close", code => {
+
+            if (code === 0) {
+                console.log(
+                    "m_erp_desktop database created."
+                );
+
+                resolve();
+            } else {
+                reject(
+                    new Error(
+                        "Database creation failed:\n" +
+                        output
+                    )
+                );
+            }
+        });
+    });
+}
+
+function importDatabaseTemplate() {
+    return new Promise((resolve, reject) => {
+
+        const mysqlClientPath = path.join(
+            path.dirname(mysqlPath),
+            "mysql.exe"
+        );
+
+        const templatePath = app.isPackaged
+            ? path.join(
+                process.resourcesPath,
+                "database-template",
+                "m_erp_desktop.sql"
+            )
+            : path.join(
+                __dirname,
+                "database-template",
+                "m_erp_desktop.sql"
+            );
+
+        console.log(
+            "Importing database template:",
+            templatePath
+        );
+
+        const mysqlProcess = spawn(
+            mysqlClientPath,
+            [
+                "-h", "127.0.0.1",
+                "-P", "3306",
+                "-u", "root",
+                "m_erp_desktop"
+            ],
+            {
+                cwd: path.dirname(mysqlClientPath),
+                windowsHide: true,
+                stdio: ["pipe", "pipe", "pipe"]
+            }
+        );
+
+        mysqlProcess.stdout.on("data", data => {
+            console.log(
+                "Database import:",
+                data.toString()
+            );
+        });
+
+        let errorOutput = "";
+
+        mysqlProcess.stderr.on("data", data => {
+            errorOutput += data.toString();
+
+            console.error(
+                "Database import error:",
+                data.toString()
+            );
+        });
+
+        const sqlStream = fs.createReadStream(
+            templatePath
+        );
+
+        sqlStream.on("error", error => {
+            reject(error);
+        });
+
+        sqlStream.pipe(
+            mysqlProcess.stdin
+        );
+
+        mysqlProcess.on("close", code => {
+
+            if (code === 0) {
+
+                console.log(
+                    "Database template imported successfully."
+                );
+
+                resolve();
+
+            } else {
+
+                reject(
+                    new Error(
+                        "Database import failed:\n" +
+                        errorOutput
+                    )
+                );
+            }
+        });
+    });
+}
+
 function initializeMySQLData(mysqlDataPath) {
     return new Promise((resolve, reject) => {
         try {
             console.log("Checking MariaDB data directory...");
 
+            // Create data directory if it does not exist
             if (!fs.existsSync(mysqlDataPath)) {
                 console.log(
                     "MariaDB data directory does not exist. Creating..."
@@ -186,14 +341,15 @@ function initializeMySQLData(mysqlDataPath) {
                 });
             }
 
-            // ibdata1 is one of the important files created
-            // after MariaDB initialization.
-            const ibdataFile = path.join(
+            // MariaDB system database
+            const mysqlSystemDatabase = path.join(
                 mysqlDataPath,
-                "ibdata1"
+                "mysql"
             );
 
-            if (fs.existsSync(ibdataFile)) {
+            // If mysql system database already exists,
+            // MariaDB has already been initialized.
+            if (fs.existsSync(mysqlSystemDatabase)) {
                 console.log(
                     "MariaDB data directory already initialized."
                 );
@@ -203,23 +359,41 @@ function initializeMySQLData(mysqlDataPath) {
             }
 
             console.log(
-                "MariaDB data directory is empty."
+                "MariaDB data directory is not initialized."
             );
 
             console.log(
                 "Initializing MariaDB system tables..."
             );
 
+            const installDbPath = path.join(
+                path.dirname(mysqlPath),
+                "mysql_install_db.exe"
+            );
+
+            if (!fs.existsSync(installDbPath)) {
+                reject(
+                    new Error(
+                        "mysql_install_db.exe not found:\n" +
+                        installDbPath
+                    )
+                );
+                return;
+            }
+
+            console.log(
+                "MariaDB installer:",
+                installDbPath
+            );
+
             const initProcess = spawn(
-                mysqlPath,
+                installDbPath,
                 [
-                    "--defaults-file=" + mysqlConfigPath,
                     "--datadir=" + mysqlDataPath,
-                    "--initialize-insecure",
-                    "--console"
+                    "--port=3306"
                 ],
                 {
-                    cwd: path.dirname(mysqlPath),
+                    cwd: path.dirname(installDbPath),
                     windowsHide: true
                 }
             );
@@ -232,7 +406,7 @@ function initializeMySQLData(mysqlDataPath) {
                 output += text;
 
                 console.log(
-                    "MariaDB initialization:",
+                    "MariaDB installation:",
                     text
                 );
             });
@@ -243,7 +417,7 @@ function initializeMySQLData(mysqlDataPath) {
                 output += text;
 
                 console.error(
-                    "MariaDB initialization:",
+                    "MariaDB installation:",
                     text
                 );
             });
@@ -255,26 +429,27 @@ function initializeMySQLData(mysqlDataPath) {
             initProcess.on("close", (code) => {
 
                 console.log(
-                    "MariaDB initialization exited with code:",
+                    "mysql_install_db exited with code:",
                     code
                 );
 
-                if (code === 0 && fs.existsSync(ibdataFile)) {
-
+                if (
+                    code === 0 &&
+                    fs.existsSync(mysqlSystemDatabase)
+                ) {
                     console.log(
-                        "MariaDB initialization completed."
+                        "MariaDB system tables initialized successfully."
                     );
 
                     resolve();
 
                 } else {
-
                     reject(
                         new Error(
-                            "MariaDB initialization failed. " +
+                            "MariaDB system table initialization failed.\n" +
                             "Exit code: " +
                             code +
-                            "\n" +
+                            "\n\n" +
                             output
                         )
                     );
@@ -619,12 +794,11 @@ async function initializeLaravel() {
     console.log("First-time Laravel initialization");
     console.log("=================================");
 
-    await runArtisan("migrate", ["--force"]);
-    await runArtisan("db:seed", ["--force"]);
     await runArtisan("storage:link");
     await runArtisan("optimize:clear");
 
     console.log("Laravel initialization completed.");
+
 }
 
 async function updateLaravelDatabase() {
@@ -964,30 +1138,42 @@ async function startApplication() {
         //     );
         // }
 
-        if (!fs.existsSync(initializationFile)) {
+    if (!fs.existsSync(initializationFile)) {
 
-            console.log("First run detected.");
+        console.log("=================================");
+        console.log("FIRST INSTALLATION DETECTED");
+        console.log("=================================");
 
-            // First installation
-            await initializeLaravel();
+        // 1. Create application database
+        await createDatabase();
 
-            fs.writeFileSync(
-                initializationFile,
-                new Date().toISOString()
-            );
+        // 2. Import your existing database template
+        await importDatabaseTemplate();
 
-            console.log("First run completed.");
+        // 3. Laravel first-time setup
+        await initializeLaravel();
 
-        } else {
+        // 4. Mark installation as completed
+        fs.writeFileSync(
+            initializationFile,
+            new Date().toISOString()
+        );
 
-            console.log(
-                "Laravel already initialized."
-            );
+        console.log("=================================");
+        console.log("FIRST INSTALLATION COMPLETED");
+        console.log("=================================");
 
-            // Every subsequent startup:
-            // Run only pending migrations.
-            await updateLaravelDatabase();
-        }
+    } else {
+
+        console.log("=================================");
+        console.log("EXISTING INSTALLATION DETECTED");
+        console.log("=================================");
+
+        // Only run pending migrations
+        await updateLaravelDatabase();
+
+        console.log("Database update check completed.");
+    }
 
         // 3. Start Laravel
         await startLaravel();
