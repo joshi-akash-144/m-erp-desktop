@@ -4,6 +4,8 @@ const fs = require("fs");
 const os = require("os");
 const { spawn } = require("child_process");
 const http = require("http");
+const { autoUpdater } = require("electron-updater");
+
 
 let currentInternetStatus = true;
 let internetCheckTimer = null;
@@ -14,6 +16,10 @@ let successfulInternetChecks = 0;
 let mysqlProcess = null;
 let laravelProcess = null;
 let mainWindow = null;
+
+let updateCheckInProgress = false;
+let updateDownloaded = false;
+let updateDownloading = false;
 
 let mysqlPath = "";
 let mysqlConfigPath = "";
@@ -75,23 +81,23 @@ async function checkInternetConnection() {
     return results.some((result) => result === true);
 }
 
-function sendInternetStatus() {
-    if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send(
-            "internet-status",
-            currentInternetStatus
-        );
-    }
-}
+// function sendInternetStatus() {
+//     if (mainWindow && !mainWindow.isDestroyed()) {
+//         mainWindow.webContents.send(
+//             "internet-status",
+//             currentInternetStatus
+//         );
+//     }
+// }
 
 async function updateInternetStatus() {
 
     const online = await checkInternetConnection();
 
-    console.log(
-        "Internet check result:",
-        online ? "CONNECTED" : "DISCONNECTED"
-    );
+    // console.log(
+    //     "Internet check result:",
+    //     online ? "CONNECTED" : "DISCONNECTED"
+    // );
 
     if (online) {
 
@@ -101,7 +107,7 @@ async function updateInternetStatus() {
         // Change to connected after 1 successful check
         if (!currentInternetStatus) {
             currentInternetStatus = true;
-            sendInternetStatus();
+            // sendInternetStatus();
         }
 
     } else {
@@ -115,19 +121,12 @@ async function updateInternetStatus() {
             failedInternetChecks >= 2
         ) {
             currentInternetStatus = false;
-            sendInternetStatus();
+            // sendInternetStatus();
         }
     }
 }
 
-function startInternetMonitoring() {
 
-    updateInternetStatus();
-
-    internetCheckTimer = setInterval(() => {
-        updateInternetStatus();
-    }, 10000);
-}
 
 ipcMain.handle("get-internet-status", () => {
     return currentInternetStatus;
@@ -170,8 +169,123 @@ setInterval(async () => {
         sendInternetStatus(online);
         lastInternetStatus = online;
     }
-}, 30000);
+}, 3000);
 
+function initializeMySQLData(mysqlDataPath) {
+    return new Promise((resolve, reject) => {
+        try {
+            console.log("Checking MariaDB data directory...");
+
+            if (!fs.existsSync(mysqlDataPath)) {
+                console.log(
+                    "MariaDB data directory does not exist. Creating..."
+                );
+
+                fs.mkdirSync(mysqlDataPath, {
+                    recursive: true
+                });
+            }
+
+            // ibdata1 is one of the important files created
+            // after MariaDB initialization.
+            const ibdataFile = path.join(
+                mysqlDataPath,
+                "ibdata1"
+            );
+
+            if (fs.existsSync(ibdataFile)) {
+                console.log(
+                    "MariaDB data directory already initialized."
+                );
+
+                resolve();
+                return;
+            }
+
+            console.log(
+                "MariaDB data directory is empty."
+            );
+
+            console.log(
+                "Initializing MariaDB system tables..."
+            );
+
+            const initProcess = spawn(
+                mysqlPath,
+                [
+                    "--defaults-file=" + mysqlConfigPath,
+                    "--datadir=" + mysqlDataPath,
+                    "--initialize-insecure",
+                    "--console"
+                ],
+                {
+                    cwd: path.dirname(mysqlPath),
+                    windowsHide: true
+                }
+            );
+
+            let output = "";
+
+            initProcess.stdout.on("data", (data) => {
+                const text = data.toString();
+
+                output += text;
+
+                console.log(
+                    "MariaDB initialization:",
+                    text
+                );
+            });
+
+            initProcess.stderr.on("data", (data) => {
+                const text = data.toString();
+
+                output += text;
+
+                console.error(
+                    "MariaDB initialization:",
+                    text
+                );
+            });
+
+            initProcess.on("error", (error) => {
+                reject(error);
+            });
+
+            initProcess.on("close", (code) => {
+
+                console.log(
+                    "MariaDB initialization exited with code:",
+                    code
+                );
+
+                if (code === 0 && fs.existsSync(ibdataFile)) {
+
+                    console.log(
+                        "MariaDB initialization completed."
+                    );
+
+                    resolve();
+
+                } else {
+
+                    reject(
+                        new Error(
+                            "MariaDB initialization failed. " +
+                            "Exit code: " +
+                            code +
+                            "\n" +
+                            output
+                        )
+                    );
+                }
+            });
+
+        } catch (error) {
+            reject(error);
+        }
+    });
+}
 
 function startMySQL(mysqlDataPath) {
     return new Promise((resolve, reject) => {
@@ -193,6 +307,7 @@ function startMySQL(mysqlDataPath) {
             mysqlPath,
             [
                 "--defaults-file=" + mysqlConfigPath,
+                "--basedir=" + path.dirname(path.dirname(mysqlPath)),
                 "--datadir=" + mysqlDataPath,
                 "--console"
             ],
@@ -512,7 +627,239 @@ async function initializeLaravel() {
     console.log("Laravel initialization completed.");
 }
 
+async function updateLaravelDatabase() {
+    console.log("=================================");
+    console.log("Checking Laravel database migrations");
+    console.log("=================================");
 
+    await runArtisan("migrate", ["--force"]);
+
+    await runArtisan("optimize:clear");
+
+    console.log("Laravel database migration check completed.");
+}
+
+// update exe file
+function setupAutoUpdater() {
+
+    // Auto-update only works for packaged application
+    if (!app.isPackaged) {
+        console.log("Auto-update disabled in development mode.");
+        return;
+    }
+
+    console.log("Auto-update enabled.");
+
+    // IMPORTANT:
+    // Update will NOT download automatically.
+    // User must click "Download Update".
+    autoUpdater.autoDownload = false;
+
+    // If update is downloaded but user chooses "Later",
+    // it can be installed when application quits.
+    autoUpdater.autoInstallOnAppQuit = true;
+
+    autoUpdater.on("checking-for-update", () => {
+        console.log("Checking for application updates...");
+        updateCheckInProgress = true;
+    });
+
+    autoUpdater.on("update-available", async (info) => {
+
+        console.log("Update available:", info.version);
+
+        updateCheckInProgress = false;
+
+        if (updateDownloading || updateDownloaded) {
+            return;
+        }
+
+        try {
+
+            const result = await dialog.showMessageBox(mainWindow, {
+                type: "info",
+                title: "Update Available",
+                message: `M ERP version ${info.version} is available.`,
+                detail:
+                    "A new version of M ERP is available. Would you like to download it now?",
+                buttons: [
+                    "Download Update",
+                    "Later"
+                ],
+                defaultId: 0,
+                cancelId: 1
+            });
+
+            if (result.response === 0) {
+
+                console.log("User selected Download Update.");
+
+                updateDownloading = true;
+
+                try {
+                    await autoUpdater.downloadUpdate();
+                } catch (error) {
+                    updateDownloading = false;
+
+                    console.error(
+                        "Update download failed:",
+                        error
+                    );
+                }
+
+            } else {
+
+                console.log(
+                    "User postponed the update."
+                );
+            }
+
+        } catch (error) {
+
+            console.error(
+                "Update dialog error:",
+                error
+            );
+        }
+    });
+
+    autoUpdater.on("update-not-available", () => {
+
+        updateCheckInProgress = false;
+
+        console.log(
+            "No update available. Current version:",
+            app.getVersion()
+        );
+    });
+
+    autoUpdater.on("download-progress", (progress) => {
+
+        console.log(
+            `Update download: ${progress.percent.toFixed(1)}%`
+        );
+
+        if (mainWindow && !mainWindow.isDestroyed()) {
+
+            mainWindow.webContents.send(
+                "update-progress",
+                {
+                    percent: progress.percent,
+                    transferred: progress.transferred,
+                    total: progress.total
+                }
+            );
+        }
+    });
+
+    autoUpdater.on("update-downloaded", async (info) => {
+
+        updateDownloading = false;
+        updateDownloaded = true;
+
+        console.log(
+            "Update downloaded successfully:",
+            info.version
+        );
+
+        if (!mainWindow || mainWindow.isDestroyed()) {
+            return;
+        }
+
+        try {
+
+            const result = await dialog.showMessageBox(
+                mainWindow,
+                {
+                    type: "info",
+                    title: "Update Ready",
+                    message:
+                        `M ERP ${info.version} has been downloaded.`,
+                    detail:
+                        "Restart the application now to install the update.",
+                    buttons: [
+                        "Restart Now",
+                        "Later"
+                    ],
+                    defaultId: 0,
+                    cancelId: 1
+                }
+            );
+
+            if (result.response === 0) {
+
+                console.log(
+                    "User selected Restart Now."
+                );
+
+                autoUpdater.quitAndInstall(
+                    false,
+                    true
+                );
+
+            } else {
+
+                console.log(
+                    "User selected Later."
+                );
+
+                console.log(
+                    "Update will be installed when the application quits."
+                );
+            }
+
+        } catch (error) {
+
+            console.error(
+                "Update installation dialog error:",
+                error
+            );
+        }
+    });
+
+    autoUpdater.on("error", (error) => {
+
+        updateCheckInProgress = false;
+        updateDownloading = false;
+
+        console.error(
+            "Auto-update error:",
+            error
+        );
+
+        if (
+            mainWindow &&
+            !mainWindow.isDestroyed()
+        ) {
+
+            mainWindow.webContents.send(
+                "update-error",
+                error.message
+            );
+        }
+    });
+}
+
+// check update
+function checkForUpdates() {
+    if (!app.isPackaged) {
+        console.log(
+            "Skipping update check because application is not packaged."
+        );
+        return;
+    }
+
+    console.log(
+        "Checking GitHub for M ERP updates..."
+    );
+
+    autoUpdater.checkForUpdates().catch((error) => {
+        console.error(
+            "Failed to check for updates:",
+            error
+        );
+    });
+}
 
 
 async function startApplication() {
@@ -522,11 +869,27 @@ async function startApplication() {
             ? path.join(process.resourcesPath, "runtime")
             : path.join(__dirname, "runtime");
 
-        const mysqlDataPath = path.join(
-            __dirname,
-            "data",
-            "mysql"
+        // const mysqlDataPath = path.join(
+        //     __dirname,
+        //     "data",
+        //     "mysql"
+        // );
+
+        const mysqlDataPath = app.isPackaged
+            ? path.join(
+                app.getPath("userData"),
+                "data",
+                "mysql"
+            )
+            : path.join(
+                __dirname,
+                "data",
+                "mysql"
         );
+        // auto create folder
+        if (!fs.existsSync(mysqlDataPath)) {
+            fs.mkdirSync(mysqlDataPath, { recursive: true });
+        }
 
         mysqlPath = path.join(
             runtimePath,
@@ -575,15 +938,37 @@ async function startApplication() {
         // Check internet
         await checkInternetAndNotify();
 
+        await initializeMySQLData(mysqlDataPath);
+
         // 1. Start MariaDB
         await startMySQL(mysqlDataPath);
         console.log("Database started.");
 
         // 2. First-time Laravel initialization
+        // if (!fs.existsSync(initializationFile)) {
+
+        //     console.log("First run detected.");
+
+        //     await initializeLaravel();
+
+        //     fs.writeFileSync(
+        //         initializationFile,
+        //         new Date().toISOString()
+        //     );
+
+        //     console.log("First run completed.");
+        // } else {
+
+        //     console.log(
+        //         "Laravel already initialized."
+        //     );
+        // }
+
         if (!fs.existsSync(initializationFile)) {
 
             console.log("First run detected.");
 
+            // First installation
             await initializeLaravel();
 
             fs.writeFileSync(
@@ -592,11 +977,16 @@ async function startApplication() {
             );
 
             console.log("First run completed.");
+
         } else {
 
             console.log(
                 "Laravel already initialized."
             );
+
+            // Every subsequent startup:
+            // Run only pending migrations.
+            await updateLaravelDatabase();
         }
 
         // 3. Start Laravel
@@ -610,9 +1000,7 @@ async function startApplication() {
         // 5. Open Electron window
         await createWindow();
 
-        // Start internet monitoring AFTER UI exists
-        startInternetMonitoring();
-
+       
         console.log("M-ERP started.");
 
     } catch (error) {
@@ -625,48 +1013,30 @@ async function startApplication() {
 }
 
 
-// async function startApplication() {
-//     try {
-//         const runtimePath = app.isPackaged
-//             ? path.join(process.resourcesPath, "runtime")
-//             : path.join(__dirname, "runtime");
-
-//         const mysqlDataPath = path.join(__dirname, "data", "mysql");
-
-//         mysqlPath       = path.join(runtimePath, "mysql", "bin", "mysqld.exe");
-//         mysqlConfigPath = path.join(runtimePath, "mysql", "my.ini");
-//         phpPath         = path.join(runtimePath, "php", "php.exe");
-//         laravelPath     = path.join(runtimePath, "Laravel");
-
-//         console.log("MySQL Path:", mysqlPath);
-//         console.log("MySQL Config:", mysqlConfigPath);
-//         console.log("MySQL Data:", mysqlDataPath);
-
-//         await startMySQL(mysqlDataPath);
-//         console.log("Database started.");
-
-//         await startLaravel();
-//         console.log("Laravel started.");
-
-//         await waitForLaravel(LARAVEL_URL);
-
-//         await createWindow();
-//         console.log("M-ERP started.");
-
-//     } catch (error) {
-//         console.error("Application startup failed:", error);
-//     }
-// }
-
-
-
 app.whenReady().then(() => {
-    startInternetMonitoring();
+   
+    // startApplication();
+    // app.on("activate", () => {
+    //     if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    // });
+
+    setupAutoUpdater();
 
     startApplication();
+
     app.on("activate", () => {
-        if (BrowserWindow.getAllWindows().length === 0) createWindow();
+        if (BrowserWindow.getAllWindows().length === 0) {
+            createWindow();
+        }
     });
+
+    // Give Laravel/PHP/MySQL some time to start
+    // before checking for updates.
+    if (app.isPackaged) {
+        setTimeout(() => {
+            checkForUpdates();
+        }, 10000);
+    }
 });
 
 app.on("window-all-closed", () => {
