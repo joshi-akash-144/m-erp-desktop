@@ -75,7 +75,7 @@ async function checkInternetConnection() {
         checkUrl("https://www.cloudflare.com/cdn-cgi/trace"),
     ]);
 
-    console.log("Internet checks:", results);
+    // console.log("Internet checks:", results);
 
     // Internet is considered available if ANY one works
     return results.some((result) => result === true);
@@ -160,10 +160,10 @@ let lastInternetStatus = true;
 setInterval(async () => {
     const online = await checkInternetConnection();
 
-    console.log(
-        "Internet:",
-        online ? "CONNECTED" : "DISCONNECTED"
-    );
+    // console.log(
+    //     "Internet:",
+    //     online ? "CONNECTED" : "DISCONNECTED"
+    // );
 
     if (online !== lastInternetStatus) {
         sendInternetStatus(online);
@@ -183,7 +183,7 @@ function createDatabase() {
             mysqlClientPath,
             [
                 "-h", "127.0.0.1",
-                "-P", "3306",
+                "-P", "3307",
                 "-u", "root",
                 "-e",
                 "CREATE DATABASE IF NOT EXISTS m_erp_desktop CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
@@ -232,6 +232,99 @@ function createDatabase() {
     });
 }
 
+// function importDatabaseTemplate() {
+//     return new Promise((resolve, reject) => {
+
+//         const mysqlClientPath = path.join(
+//             path.dirname(mysqlPath),
+//             "mysql.exe"
+//         );
+
+//         const templatePath = app.isPackaged
+//             ? path.join(
+//                 process.resourcesPath,
+//                 "database-template",
+//                 "m_erp_desktop.sql"
+//             )
+//             : path.join(
+//                 __dirname,
+//                 "database-template",
+//                 "m_erp_desktop.sql"
+//             );
+
+//         console.log(
+//             "Importing database template:",
+//             templatePath
+//         );
+
+//         const mysqlProcess = spawn(
+//             mysqlClientPath,
+//             [
+//                 "-h", "127.0.0.1",
+//                 "-P", "3307",
+//                 "-u", "root",
+//                 "m_erp_desktop"
+//             ],
+//             {
+//                 cwd: path.dirname(mysqlClientPath),
+//                 windowsHide: true,
+//                 stdio: ["pipe", "pipe", "pipe"]
+//             }
+//         );
+
+//         mysqlProcess.stdout.on("data", data => {
+//             console.log(
+//                 "Database import:",
+//                 data.toString()
+//             );
+//         });
+
+//         let errorOutput = "";
+
+//         mysqlProcess.stderr.on("data", data => {
+//             errorOutput += data.toString();
+
+//             console.error(
+//                 "Database import error:",
+//                 data.toString()
+//             );
+//         });
+
+//         const sqlStream = fs.createReadStream(
+//             templatePath
+//         );
+
+//         sqlStream.on("error", error => {
+//             reject(error);
+//         });
+
+//         sqlStream.pipe(
+//             mysqlProcess.stdin
+//         );
+
+//         mysqlProcess.on("close", code => {
+
+//             if (code === 0) {
+
+//                 console.log(
+//                     "Database template imported successfully."
+//                 );
+
+//                 resolve();
+
+//             } else {
+
+//                 reject(
+//                     new Error(
+//                         "Database import failed:\n" +
+//                         errorOutput
+//                     )
+//                 );
+//             }
+//         });
+//     });
+// }
+
 function importDatabaseTemplate() {
     return new Promise((resolve, reject) => {
 
@@ -253,15 +346,54 @@ function importDatabaseTemplate() {
             );
 
         console.log(
-            "Importing database template:",
+            "MySQL Client:",
+            mysqlClientPath
+        );
+
+        console.log(
+            "SQL Template:",
             templatePath
+        );
+
+        // Check mysql.exe
+        if (!fs.existsSync(mysqlClientPath)) {
+            reject(
+                new Error(
+                    "mysql.exe not found:\n" +
+                    mysqlClientPath
+                )
+            );
+            return;
+        }
+
+        // Check SQL file
+        if (!fs.existsSync(templatePath)) {
+            reject(
+                new Error(
+                    "Database template not found:\n" +
+                    templatePath
+                )
+            );
+            return;
+        }
+
+        const stats = fs.statSync(templatePath);
+
+        console.log(
+            "SQL file size:",
+            stats.size,
+            "bytes"
+        );
+
+        console.log(
+            "Importing database template..."
         );
 
         const mysqlProcess = spawn(
             mysqlClientPath,
             [
                 "-h", "127.0.0.1",
-                "-P", "3306",
+                "-P", "3307",
                 "-u", "root",
                 "m_erp_desktop"
             ],
@@ -272,22 +404,44 @@ function importDatabaseTemplate() {
             }
         );
 
+        console.log(
+            "mysql.exe started. PID:",
+            mysqlProcess.pid
+        );
+
+        let errorOutput = "";
+
         mysqlProcess.stdout.on("data", data => {
+
             console.log(
                 "Database import:",
                 data.toString()
             );
+
         });
 
-        let errorOutput = "";
-
         mysqlProcess.stderr.on("data", data => {
-            errorOutput += data.toString();
+
+            const message = data.toString();
+
+            errorOutput += message;
 
             console.error(
                 "Database import error:",
-                data.toString()
+                message
             );
+
+        });
+
+        mysqlProcess.on("error", error => {
+
+            console.error(
+                "mysql.exe process error:",
+                error
+            );
+
+            reject(error);
+
         });
 
         const sqlStream = fs.createReadStream(
@@ -295,14 +449,53 @@ function importDatabaseTemplate() {
         );
 
         sqlStream.on("error", error => {
+
+            console.error(
+                "SQL file read error:",
+                error
+            );
+
+            mysqlProcess.kill();
+
             reject(error);
+
+        });
+
+        sqlStream.on("open", () => {
+
+            console.log(
+                "SQL file opened. Starting import..."
+            );
+
+        });
+
+        sqlStream.on("end", () => {
+
+            console.log(
+                "SQL file sent to mysql.exe."
+            );
+
         });
 
         sqlStream.pipe(
             mysqlProcess.stdin
         );
 
+        mysqlProcess.stdin.on("error", error => {
+
+            console.error(
+                "MySQL stdin error:",
+                error
+            );
+
+        });
+
         mysqlProcess.on("close", code => {
+
+            console.log(
+                "mysql.exe closed. Exit code:",
+                code
+            );
 
             if (code === 0) {
 
@@ -316,12 +509,18 @@ function importDatabaseTemplate() {
 
                 reject(
                     new Error(
-                        "Database import failed:\n" +
+                        "Database import failed.\n" +
+                        "Exit code: " +
+                        code +
+                        "\n" +
                         errorOutput
                     )
                 );
+
             }
+
         });
+
     });
 }
 
@@ -390,7 +589,7 @@ function initializeMySQLData(mysqlDataPath) {
                 installDbPath,
                 [
                     "--datadir=" + mysqlDataPath,
-                    "--port=3306"
+                    "--port=3307"
                 ],
                 {
                     cwd: path.dirname(installDbPath),
@@ -523,6 +722,33 @@ function startMySQL(mysqlDataPath) {
     });
 }
 
+// function startLaravel() {
+//     return new Promise((resolve, reject) => {
+//         console.log("Starting Laravel...");
+
+//         laravelProcess = spawn(
+//             phpPath,
+//             ["artisan", "serve", "--host=127.0.0.1", "--port=8000"],
+//             { cwd: laravelPath, windowsHide: true }
+//         );
+
+//         laravelProcess.stdout.on("data", (data) => {
+//             const output = data.toString();
+//             console.log("Laravel: " + output);
+//             if (output.includes("Development Server")) {
+//                 console.log("Laravel server started!");
+//                 resolve();
+//             }
+//         });
+
+//         laravelProcess.stderr.on("data", (data) => console.error("Laravel Error: " + data));
+//         laravelProcess.on("error", reject);
+//         laravelProcess.on("close", (code) => console.log("Laravel stopped with code " + code));
+
+//         setTimeout(() => resolve(), 5000);
+//     });
+// }
+
 function startLaravel() {
     return new Promise((resolve, reject) => {
         console.log("Starting Laravel...");
@@ -530,23 +756,28 @@ function startLaravel() {
         laravelProcess = spawn(
             phpPath,
             ["artisan", "serve", "--host=127.0.0.1", "--port=8000"],
-            { cwd: laravelPath, windowsHide: true }
+            {
+                cwd: laravelPath,
+                windowsHide: true
+            }
         );
 
         laravelProcess.stdout.on("data", (data) => {
-            const output = data.toString();
-            console.log("Laravel: " + output);
-            if (output.includes("Development Server")) {
-                console.log("Laravel server started!");
-                resolve();
-            }
+            console.log("Laravel: " + data.toString());
         });
 
-        laravelProcess.stderr.on("data", (data) => console.error("Laravel Error: " + data));
-        laravelProcess.on("error", reject);
-        laravelProcess.on("close", (code) => console.log("Laravel stopped with code " + code));
+        laravelProcess.stderr.on("data", (data) => {
+            console.error("Laravel Error: " + data.toString());
+        });
 
-        setTimeout(() => resolve(), 5000);
+        laravelProcess.on("error", reject);
+
+        laravelProcess.on("close", (code) => {
+            console.log("Laravel stopped with code " + code);
+        });
+
+        // PHP process successfully spawned
+        resolve();
     });
 }
 
@@ -679,13 +910,83 @@ async function createWindow() {
 //     }
 // }
 
-function waitForLaravel(LARAVEL_URL ,timeout = 30000) {
+// function waitForLaravel(LARAVEL_URL ,timeout = 30000) {
+//     return new Promise((resolve, reject) => {
+//         const start = Date.now();
+
+//         const check = () => {
+//             const request = http.get(LARAVEL_URL, (response) => {
+//                 response.destroy();
+
+//                 console.log("Laravel is ready!");
+//                 resolve();
+//             });
+
+//             request.on("error", () => {
+//                 if (Date.now() - start >= timeout) {
+//                     reject(
+//                         new Error(
+//                             "Laravel did not start within 30 seconds."
+//                         )
+//                     );
+//                     return;
+//                 }
+
+//                 setTimeout(check, 500);
+//             });
+
+//             request.setTimeout(1000, () => {
+//                 request.destroy();
+//             });
+//         };
+
+//         check();
+//     });
+// }
+
+// function waitForLaravel(LARAVEL_URL, timeout = 30000) {
+//     return new Promise((resolve, reject) => {
+//         const start = Date.now();
+
+//         const check = () => {
+//             const request = http.get(LARAVEL_URL, (response) => {
+//                 response.destroy();
+
+//                 console.log("Laravel is ready!");
+//                 resolve();
+//             });
+
+//             request.on("error", () => {
+//                 if (Date.now() - start >= timeout) {
+//                     reject(
+//                         new Error(
+//                             "Laravel did not start within 30 seconds."
+//                         )
+//                     );
+//                     return;
+//                 }
+
+//                 setTimeout(check, 300);
+//             });
+
+//             request.setTimeout(1000, () => {
+//                 request.destroy();
+//             });
+//         };
+
+//         check();
+//     });
+// }
+
+function waitForLaravel(LARAVEL_URL, timeout = 30000) {
     return new Promise((resolve, reject) => {
         const start = Date.now();
 
         const check = () => {
             const request = http.get(LARAVEL_URL, (response) => {
-                response.destroy();
+                console.log("Laravel HTTP status:", response.statusCode);
+
+                response.resume();
 
                 console.log("Laravel is ready!");
                 resolve();
@@ -701,10 +1002,10 @@ function waitForLaravel(LARAVEL_URL ,timeout = 30000) {
                     return;
                 }
 
-                setTimeout(check, 500);
+                setTimeout(check, 300);
             });
 
-            request.setTimeout(1000, () => {
+            request.setTimeout(3000, () => {
                 request.destroy();
             });
         };
@@ -1060,6 +1361,12 @@ async function startApplication() {
                 "data",
                 "mysql"
         );
+
+        const initializationFile = path.join(
+            app.getPath("userData"),
+            "initialized"
+        );
+
         // auto create folder
         if (!fs.existsSync(mysqlDataPath)) {
             fs.mkdirSync(mysqlDataPath, { recursive: true });
@@ -1089,6 +1396,14 @@ async function startApplication() {
             "Laravel"
         );
 
+        console.log("=================================");
+        console.log("Initialization file:", initializationFile);
+        console.log(
+            "Already initialized:",
+            fs.existsSync(initializationFile)
+        );
+        console.log("=================================");
+
         // const initializationFile = path.join(
         //     app.getPath("userData"),
         //     "initialized"
@@ -1112,12 +1427,20 @@ async function startApplication() {
         // Check internet
         await checkInternetAndNotify();
 
-        await initializeMySQLData(mysqlDataPath);
-
+        await initializeMySQLData(mysqlDataPath);      
+        
         // 1. Start MariaDB
         await startMySQL(mysqlDataPath);
         console.log("Database started.");
+        
 
+        console.time("INITIALIZATION");
+
+        // your first-installation block
+
+        console.timeEnd("INITIALIZATION");
+
+        
         // 2. First-time Laravel initialization
         // if (!fs.existsSync(initializationFile)) {
 
@@ -1138,22 +1461,53 @@ async function startApplication() {
         //     );
         // }
 
+    // if (!fs.existsSync(initializationFile)) {
+
+    //     console.log("=================================");
+    //     console.log("FIRST INSTALLATION DETECTED");
+    //     console.log("=================================");
+
+    //     // 1. Create application database
+    //     await createDatabase();
+
+    //     // 2. Import your existing database template
+    //     await importDatabaseTemplate();
+
+    //     // 3. Laravel first-time setup
+    //     await initializeLaravel();
+
+    //     // 4. Mark installation as completed
+    //     fs.writeFileSync(
+    //         initializationFile,
+    //         new Date().toISOString()
+    //     );
+
+    //     console.log("=================================");
+    //     console.log("FIRST INSTALLATION COMPLETED");
+    //     console.log("=================================");
+
+    // } else {
+
+    //     console.log("=================================");
+    //     console.log("EXISTING INSTALLATION DETECTED");
+    //     console.log("=================================");
+
+    //     // Only run pending migrations
+    //     await updateLaravelDatabase();
+
+    //     console.log("Database update check completed.");
+    // }
+
     if (!fs.existsSync(initializationFile)) {
 
         console.log("=================================");
         console.log("FIRST INSTALLATION DETECTED");
         console.log("=================================");
 
-        // 1. Create application database
         await createDatabase();
-
-        // 2. Import your existing database template
         await importDatabaseTemplate();
-
-        // 3. Laravel first-time setup
         await initializeLaravel();
 
-        // 4. Mark installation as completed
         fs.writeFileSync(
             initializationFile,
             new Date().toISOString()
@@ -1163,31 +1517,35 @@ async function startApplication() {
         console.log("FIRST INSTALLATION COMPLETED");
         console.log("=================================");
 
-    } else {
-
-        console.log("=================================");
-        console.log("EXISTING INSTALLATION DETECTED");
-        console.log("=================================");
-
-        // Only run pending migrations
-        await updateLaravelDatabase();
-
-        console.log("Database update check completed.");
     }
+
+    console.time("LARAVEL");
 
         // 3. Start Laravel
         await startLaravel();
         console.log("Laravel started.");
 
+        console.time("WAIT_LARAVEL");
+
+
         // 4. Wait until Laravel HTTP server is ready
         await waitForLaravel(LARAVEL_URL);
-        console.log("Laravel HTTP server ready.");
+        // console.log("Laravel HTTP server ready.");
+
+        console.timeEnd("WAIT_LARAVEL");
+        console.timeEnd("LARAVEL");
+
+        console.time("WINDOW");
+
 
         // 5. Open Electron window
         await createWindow();
 
-       
+        console.timeEnd("WINDOW");
+
         console.log("M-ERP started.");
+
+        // console.log("M-ERP started.");
 
     } catch (error) {
 
@@ -1198,7 +1556,7 @@ async function startApplication() {
     }
 }
 
-
+console.log("USER DATA:", app.getPath("userData"));
 app.whenReady().then(() => {
    
     // startApplication();
