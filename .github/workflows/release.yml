@@ -1,0 +1,54 @@
+name: Build and Release M ERP
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+# Required so electron-builder can create/update the GitHub Release
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build Windows Installer
+    runs-on: windows-latest
+
+    steps:
+
+      # ---------------------------------------------------------
+      # 1. Download source code
+      # ---------------------------------------------------------
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ---------------------------------------------------------
+      # 2. Install Node.js
+      # ---------------------------------------------------------
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # ---------------------------------------------------------
+      # 3. Install dependencies
+      # ---------------------------------------------------------
+      - name: Install dependencies
+        run: npm ci
+
+      # ---------------------------------------------------------
+      # 4. Build Windows installer
+      #
+      # electron-builder will:
+      # - build Electron application
+      # - package runtime
+      # - create NSIS installer
+      # - generate latest.yml
+      # - generate blockmap
+      # - publish everything to GitHub Release
+      # ---------------------------------------------------------
+      - name: Build and publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run dist -- --publish always
