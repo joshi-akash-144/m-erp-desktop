@@ -1616,6 +1616,12 @@ async function startApplication() {
         console.log("FIRST INSTALLATION COMPLETED");
         console.log("=================================");
 
+    }else {
+
+        console.log("Existing installation detected.");
+
+        await updateLaravelDatabase();
+
     }
 
     console.time("LARAVEL");
