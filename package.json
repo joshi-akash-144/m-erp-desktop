@@ -28,7 +28,10 @@
       "!data/**/*",
       "!dist/**/*",
       "!database-template/**/*",
-      "!runtime/**/*"
+      "!runtime/**/*",
+      "!.git/**/*",
+      "!**/*.map",
+      "!**/node_modules/.cache/**/*"
     ],
 
     "publish": {
@@ -40,11 +43,26 @@
     "extraResources": [
       {
         "from": "runtime",
-        "to": "runtime"
+        "to": "runtime",
+        "filter": [
+          "**/*",
+          "!**/.git/**/*",
+          "!**/tests/**/*",
+          "!**/storage/logs/**/*",
+          "!**/storage/framework/cache/**/*",
+          "!**/storage/framework/sessions/**/*",
+          "!**/storage/framework/views/**/*",
+          "!**/node_modules/**/*",
+          "!**/*.map"
+        ]
       },
       {
         "from": "database-template",
-        "to": "database-template"
+        "to": "database-template",
+        "filter": [
+          "**/*",
+          "!**/.git/**/*"
+        ]
       }
 
     ],

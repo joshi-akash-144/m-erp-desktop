@@ -26,6 +26,8 @@ let mysqlConfigPath = "";
 let phpPath = "";
 let laravelPath = "";
 
+let laravelStoragePath = "";
+
 const preloadPath = path.join(__dirname, "preload.js");
 const LARAVEL_URL = "http://127.0.0.1:8000";
 
@@ -722,62 +724,93 @@ function startMySQL(mysqlDataPath) {
     });
 }
 
-// function startLaravel() {
-//     return new Promise((resolve, reject) => {
-//         console.log("Starting Laravel...");
 
-//         laravelProcess = spawn(
-//             phpPath,
-//             ["artisan", "serve", "--host=127.0.0.1", "--port=8000"],
-//             { cwd: laravelPath, windowsHide: true }
-//         );
-
-//         laravelProcess.stdout.on("data", (data) => {
-//             const output = data.toString();
-//             console.log("Laravel: " + output);
-//             if (output.includes("Development Server")) {
-//                 console.log("Laravel server started!");
-//                 resolve();
-//             }
-//         });
-
-//         laravelProcess.stderr.on("data", (data) => console.error("Laravel Error: " + data));
-//         laravelProcess.on("error", reject);
-//         laravelProcess.on("close", (code) => console.log("Laravel stopped with code " + code));
-
-//         setTimeout(() => resolve(), 5000);
-//     });
-// }
 
 function startLaravel() {
     return new Promise((resolve, reject) => {
         console.log("Starting Laravel...");
 
+        console.log(
+            "Electron Laravel Storage:",
+            laravelStoragePath
+        );
+
+        const laravelEnv = {
+            ...process.env,
+            LARAVEL_STORAGE_PATH: laravelStoragePath
+        };
+
+        console.log(
+            "Environment LARAVEL_STORAGE_PATH:",
+            laravelEnv.LARAVEL_STORAGE_PATH
+        );
+
         laravelProcess = spawn(
             phpPath,
-            ["artisan", "serve", "--host=127.0.0.1", "--port=8000"],
+            [
+                "artisan",
+                "serve",
+                "--host=127.0.0.1",
+                "--port=8000"
+            ],
             {
                 cwd: laravelPath,
-                windowsHide: true
+                env: laravelEnv,
+                windowsHide: true,
+                stdio: ["ignore", "pipe", "pipe"]
             }
         );
 
+        let serverStarted = false;
+
         laravelProcess.stdout.on("data", (data) => {
-            console.log("Laravel: " + data.toString());
+            const output = data.toString();
+
+            console.log("Laravel:", output);
+
+            if (
+                output.includes("Server running on") &&
+                !serverStarted
+            ) {
+                serverStarted = true;
+                console.log("Laravel server process started.");
+                resolve();
+            }
         });
 
         laravelProcess.stderr.on("data", (data) => {
-            console.error("Laravel Error: " + data.toString());
+            console.error(
+                "Laravel Error:",
+                data.toString()
+            );
         });
 
-        laravelProcess.on("error", reject);
+        laravelProcess.on("error", (error) => {
+            console.error(
+                "Laravel process error:",
+                error
+            );
+
+            if (!serverStarted) {
+                reject(error);
+            }
+        });
 
         laravelProcess.on("close", (code) => {
-            console.log("Laravel stopped with code " + code);
-        });
+            console.log(
+                "Laravel stopped with code:",
+                code
+            );
 
-        // PHP process successfully spawned
-        resolve();
+            if (!serverStarted) {
+                reject(
+                    new Error(
+                        "Laravel process stopped before server started. Exit code: " +
+                        code
+                    )
+                );
+            }
+        });
     });
 }
 
@@ -1090,10 +1123,69 @@ function runArtisan(command, args = []) {
 //     console.log("=================================");
 // }
 
+function prepareLaravelStorage() {
+    console.log("=================================");
+    console.log("Preparing Laravel writable storage");
+    console.log("=================================");
+
+    const sourceStorage = path.join(
+        laravelPath,
+        "storage"
+    );
+
+    if (!fs.existsSync(laravelStoragePath)) {
+        console.log("Creating Laravel storage:");
+        console.log(laravelStoragePath);
+
+        fs.cpSync(
+            sourceStorage,
+            laravelStoragePath,
+            {
+                recursive: true
+            }
+        );
+
+        console.log("Laravel storage copied successfully.");
+    } else {
+        console.log("Laravel storage already exists.");
+    }
+
+    // Make sure required Laravel folders exist
+    const requiredFolders = [
+        "app",
+        "app/private",
+        "app/public",
+        "framework",
+        "framework/cache",
+        "framework/cache/data",
+        "framework/sessions",
+        "framework/views",
+        "logs"
+    ];
+
+    for (const folder of requiredFolders) {
+        const folderPath = path.join(
+            laravelStoragePath,
+            folder
+        );
+
+        if (!fs.existsSync(folderPath)) {
+            fs.mkdirSync(folderPath, {
+                recursive: true
+            });
+        }
+    }
+
+    console.log("Laravel writable storage ready.");
+}
+
 async function initializeLaravel() {
     console.log("=================================");
     console.log("First-time Laravel initialization");
     console.log("=================================");
+
+    // Create/copy Laravel storage to AppData
+    prepareLaravelStorage();
 
     await runArtisan("storage:link");
     await runArtisan("optimize:clear");
@@ -1343,6 +1435,13 @@ async function startApplication() {
         const runtimePath = app.isPackaged
             ? path.join(process.resourcesPath, "runtime")
             : path.join(__dirname, "runtime");
+
+        // Writable Laravel storage outside Program Files
+        laravelStoragePath = path.join(
+            app.getPath("userData"),
+            "LaravelStorage"
+        );
+        console.log("Laravel Storage:", laravelStoragePath);
 
         // const mysqlDataPath = path.join(
         //     __dirname,

@@ -89,10 +89,11 @@ class LoginRequest extends FormRequest
         // Check if user already has an active session
         $alreadyLoggedIn = UserLoginSession::where('user_id', $user->id)
             ->whereNull('logout_at')
+            ->where('session_id', '!=', $this->session()->getId())
             ->whereExists(function ($query) {
                 $query->select(DB::raw(1))
                     ->from('sessions')
-                    ->whereColumn('sessions.id', 'user_login_sessions.session_id');
+                    ->whereColumn('sessions.id', 'user_login_sessions.session_id');                    
             })
             ->exists();
 
