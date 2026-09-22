@@ -1,4 +1,4 @@
-﻿const { app, BrowserWindow, ipcMain, dialog, shell } = require("electron");
+const { app, BrowserWindow, ipcMain, dialog, shell } = require("electron");
 const path = require("path");
 const fs = require("fs");
 const os = require("os");
@@ -1069,320 +1069,71 @@ async function updateLaravelDatabase() {
 }
 
 //update process show 
-function createUpdateProgressWindow() {
-    if (updateProgressWindow && !updateProgressWindow.isDestroyed()) {
-        return;
-    }
-
-    updateProgressWindow = new BrowserWindow({
-        width: 420,
-        height: 180,
-        resizable: false,
-        minimizable: false,
-        maximizable: false,
-        closable: false,
-        alwaysOnTop: true,
-        center: true,
-        modal: true,
-        parent: mainWindow,
-        webPreferences: {
-            contextIsolation: true,
-            nodeIntegration: false
-        }
-    });
-
-    updateProgressWindow.setMenuBarVisibility(false);
-
-    updateProgressWindow.loadURL(
-        `data:text/html;charset=utf-8,
-        <html>
-        <body style="
-            margin:0;
-            padding:30px;
-            font-family:Arial,sans-serif;
-            text-align:center;
-            background:#fff;
-        ">
-            <h3 style="margin:0 0 15px;">M ERP Update</h3>
-
-            <div style="
-                font-size:14px;
-                margin-bottom:12px;
-            ">
-                Downloading update...
-            </div>
-
-            <div style="
-                width:100%;
-                height:12px;
-                background:#e5e5e5;
-                border-radius:6px;
-                overflow:hidden;
-            ">
-                <div id="progress" style="
-                    width:0%;
-                    height:100%;
-                    background:#0d6efd;
-                    transition:width .2s;
-                "></div>
-            </div>
-
-            <div id="percent" style="
-                margin-top:10px;
-                font-size:13px;
-            ">
-                0%
-            </div>
-
-            <script>
-                window.updateProgress = function(percent) {
-                    document.getElementById("progress").style.width =
-                        percent + "%";
-
-                    document.getElementById("percent").innerText =
-                        percent.toFixed(1) + "%";
-                };
-            </script>
-        </body>
-        </html>`
-    );
-}
-
 // update exe file
 function setupAutoUpdater() {
+    if (!app.isPackaged) return;
 
-    // Auto-update only works for packaged application
-    if (!app.isPackaged) {
-        console.log("Auto-update disabled in development mode.");
-        return;
-    }
-
-    console.log("Auto-update enabled.");
-
-    // IMPORTANT:
-    // Update will NOT download automatically.
-    // User must click "Download Update".
     autoUpdater.autoDownload = false;
-
-    // If update is downloaded but user chooses "Later",
-    // it can be installed when application quits.
     autoUpdater.autoInstallOnAppQuit = true;
 
     autoUpdater.on("checking-for-update", () => {
-        console.log("Checking for application updates...");
-        updateCheckInProgress = true;
+        if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send("update-event", { type: "checking" });
     });
 
-    autoUpdater.on("update-available", async (info) => {
-
-        console.log("Update available:", info.version);
-
-        updateCheckInProgress = false;
-
-        if (updateDownloading || updateDownloaded) {
-            return;
-        }
-
-        try {
-
-            const result = await dialog.showMessageBox(mainWindow, {
-                type: "info",
-                title: "Update Available",
-                message: `M ERP version ${info.version} is available.`,
-                detail:
-                    "A new version of M ERP is available. Would you like to download it now?",
-                buttons: [
-                    "Download Update",
-                    "Later"
-                ],
-                defaultId: 0,
-                cancelId: 1
-            });
-
-            if (result.response === 0) {
-
-                console.log("User selected Download Update.");
-
-                updateDownloading = true;
-
-                createUpdateProgressWindow();
-
-                try {
-                    await autoUpdater.downloadUpdate();
-                } catch (error) {
-                    updateDownloading = false;
-
-                    mainWindow.webContents.send("update-error", error.message);
-
-                    console.error(
-                        "Update download failed:",
-                        error
-                    );
-                }
-
-            } else {
-
-                console.log(
-                    "User postponed the update."
-                );
-            }
-
-        } catch (error) {
-
-            console.error(
-                "Update dialog error:",
-                error
-            );
-        }
+    autoUpdater.on("update-available", (info) => {
+        if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send("update-event", { type: "available", version: info.version });
     });
 
-    autoUpdater.on("update-not-available", () => {
-
-        updateCheckInProgress = false;
-
-        console.log(
-            "No update available. Current version:",
-            app.getVersion()
-        );
+    autoUpdater.on("update-not-available", (info) => {
+        if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send("update-event", { type: "not-available", version: app.getVersion() });
     });
 
     autoUpdater.on("download-progress", (progress) => {
-
-        console.log(
-            `Update download: ${progress.percent.toFixed(1)}%`
-        );
-
-        if (
-            updateProgressWindow &&
-            !updateProgressWindow.isDestroyed()
-        ) {
-            updateProgressWindow.webContents.executeJavaScript(
-                `window.updateProgress(${progress.percent})`
-            );
-        }
+        if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send("update-event", { 
+            type: "progress", 
+            percent: progress.percent, 
+            transferred: progress.transferred, 
+            total: progress.total 
+        });
     });
 
-    autoUpdater.on("update-downloaded", async (info) => {
-
-        updateDownloading = false;
-        updateDownloaded = true;
-
-        if (updateProgressWindow &&!updateProgressWindow.isDestroyed()) {
-                updateProgressWindow.close();
-                updateProgressWindow = null;
-        }
-
-        console.log(
-            "Update downloaded successfully:",
-            info.version
-        );
-
-        if (!mainWindow || mainWindow.isDestroyed()) {
-            return;
-        }
-
-        try {
-
-            const result = await dialog.showMessageBox(
-                mainWindow,
-                {
-                    type: "info",
-                    title: "Update Ready",
-                    message:
-                        `M ERP ${info.version} has been downloaded.`,
-                    detail:
-                        "Restart the application now to install the update.",
-                    buttons: [
-                        "Restart Now",
-                        "Later"
-                    ],
-                    defaultId: 0,
-                    cancelId: 1
-                }
-            );
-
-            if (result.response === 0) {
-
-                console.log(
-                    "User selected Restart Now."
-                );
-
-                autoUpdater.quitAndInstall(
-                    false,
-                    true
-                );
-
-            } else {
-
-                console.log(
-                    "User selected Later."
-                );
-
-                console.log(
-                    "Update will be installed when the application quits."
-                );
-            }
-
-        } catch (error) {
-
-            console.error(
-                "Update installation dialog error:",
-                error
-            );
-        }
+    autoUpdater.on("update-downloaded", (info) => {
+        if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send("update-event", { type: "downloaded", version: info.version });
     });
 
     autoUpdater.on("error", (error) => {
-
-        updateCheckInProgress = false;
-        updateDownloading = false;
-
-        if (
-            updateProgressWindow &&
-            !updateProgressWindow.isDestroyed()
-        ) {
-            updateProgressWindow.close();
-            updateProgressWindow = null;
-        }
-
-        console.error(
-            "Auto-update error:",
-            error
-        );
-
-        if (
-            mainWindow &&
-            !mainWindow.isDestroyed()
-        ) {
-
-            mainWindow.webContents.send(
-                "update-error",
-                error.message
-            );
-        }
+        if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send("update-event", { type: "error", message: error.message });
     });
 }
 
-// check update
-function checkForUpdates() {
-    if (!app.isPackaged) {
-        console.log(
-            "Skipping update check because application is not packaged."
-        );
-        return;
+// IPC Handlers for Manual Update Check
+ipcMain.on("check-for-updates", () => {
+    if (app.isPackaged) {
+        autoUpdater.checkForUpdates().catch((e) => {
+            console.error("Update check failed:", e);
+            if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.webContents.send("update-event", { type: "error", message: e.message });
+            }
+        });
+    } else {
+        // Prevent infinite loading in development mode (npm start)
+        console.log("Simulating update check for development mode.");
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            setTimeout(() => {
+                mainWindow.webContents.send("update-event", { type: "not-available", version: app.getVersion() });
+            }, 1000);
+        }
     }
+});
+ipcMain.on("download-update", () => {
+    if (app.isPackaged) autoUpdater.downloadUpdate().catch(e => console.error("Download failed:", e));
+});
 
-    console.log(
-        "Checking GitHub for M ERP updates..."
-    );
+ipcMain.on("install-update", () => {
+    if (app.isPackaged) autoUpdater.quitAndInstall(false, true);
+});
 
-    autoUpdater.checkForUpdates().catch((error) => {
-        console.error(
-            "Failed to check for updates:",
-            error
-        );
-    });
-}
+
 
 
 async function startApplication() {
@@ -1635,13 +1386,7 @@ app.whenReady().then(() => {
         }
     });
 
-    // Give Laravel/PHP/MySQL some time to start
-    // before checking for updates.
-    if (app.isPackaged) {
-        setTimeout(() => {
-            checkForUpdates();
-        }, 10000);
-    }
+
 });
 
 app.on("window-all-closed", () => {

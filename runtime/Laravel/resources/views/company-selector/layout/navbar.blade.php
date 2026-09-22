@@ -12,6 +12,17 @@
            </div>
            <!-- END NAVBAR LOGO -->
            <div class="navbar-nav flex-row order-md-last">
+               <div class="nav-item d-flex me-3">
+                   {{-- Electron Update Button --}}
+                   <a href="#" id="check-updates-btn-selector" class="btn btn-outline-primary btn-5 waves-effect" data-bs-toggle="modal" data-bs-target="#updateModal" title="Check for Updates">
+                       <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                          <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                          <path d="M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4"></path>
+                          <path d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4"></path>
+                       </svg>
+                       <span class="d-none d-md-inline ms-1">Update</span>
+                   </a>
+               </div>
                <div class="nav-item dropdown">
                    <a href="#" class="nav-link d-flex lh-1 p-0 px-2 waves-effect" data-bs-toggle="dropdown"
                        aria-label="Open user menu">
@@ -475,3 +486,156 @@
            </div>
        </div>
    </header>
+
+{{-- Electron Update Modal --}}
+<div class="modal modal-blur fade" id="updateModal" tabindex="-1" role="dialog" aria-hidden="true" data-bs-backdrop="static">
+  <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-body text-center py-4">
+        <h3 id="updateModalTitle" class="mb-3">Software Update</h3>
+        
+        <div id="updateSpinner" class="mb-3">
+          <div class="spinner-border text-primary" role="status"></div>
+          <div class="mt-2 text-muted">Checking for Updates...</div>
+        </div>
+
+        <div id="updateMessage" class="text-muted mb-3 d-none"></div>
+
+        <div id="updateProgressContainer" class="d-none text-start mb-3">
+            <div class="d-flex justify-content-between text-muted mb-1" style="font-size: 12px;">
+                <span>Downloading...</span>
+                <span id="updatePercentText">0%</span>
+            </div>
+            <div class="progress progress-sm">
+                <div id="updateProgressBar" class="progress-bar progress-bar-indeterminate bg-primary" role="progressbar" style="width: 0%"></div>
+            </div>
+        </div>
+
+      </div>
+      <div class="modal-footer" id="updateModalFooter" style="display: none;">
+        <div class="w-100">
+          <div class="row">
+            <div class="col">
+                <button type="button" class="btn w-100" data-bs-dismiss="modal" id="updateLaterBtn">Later</button>
+            </div>
+            <div class="col" id="updateActionCol">
+                <button type="button" class="btn btn-primary w-100" id="updateActionBtn">Update</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+    if (!window.electronAPI) return;
+
+    const checkUpdateBtn = document.getElementById('check-updates-btn-selector');
+    if (checkUpdateBtn) checkUpdateBtn.classList.remove('d-none');
+
+    let isCheckingForUpdates = false;
+    const updateSpinner = document.getElementById('updateSpinner');
+    const updateMessage = document.getElementById('updateMessage');
+    const updateProgressContainer = document.getElementById('updateProgressContainer');
+    const updateProgressBar = document.getElementById('updateProgressBar');
+    const updatePercentText = document.getElementById('updatePercentText');
+    const updateModalFooter = document.getElementById('updateModalFooter');
+    const updateActionBtn = document.getElementById('updateActionBtn');
+    const updateLaterBtn = document.getElementById('updateLaterBtn');
+
+    function setUpdateState(state, text = '') {
+        updateSpinner.classList.add('d-none');
+        updateMessage.classList.add('d-none');
+        updateProgressContainer.classList.add('d-none');
+        updateModalFooter.style.display = 'none';
+        updateActionBtn.style.display = 'none';
+        updateActionBtn.disabled = false;
+        
+        if (state === 'checking') {
+            updateSpinner.classList.remove('d-none');
+            updateModalFooter.style.display = 'block';
+            updateLaterBtn.disabled = true;
+        } else if (state === 'message') {
+            updateMessage.classList.remove('d-none');
+            updateMessage.innerHTML = text;
+            updateModalFooter.style.display = 'block';
+            updateLaterBtn.disabled = false;
+            updateLaterBtn.textContent = 'Close';
+        } else if (state === 'available') {
+            updateMessage.classList.remove('d-none');
+            updateMessage.innerHTML = text;
+            updateModalFooter.style.display = 'block';
+            updateLaterBtn.disabled = false;
+            updateLaterBtn.textContent = 'Later';
+            updateActionBtn.style.display = 'block';
+            updateActionBtn.textContent = 'Update Now';
+            updateActionBtn.onclick = () => {
+                setUpdateState('downloading');
+                window.electronAPI.downloadUpdate();
+            };
+        } else if (state === 'downloading') {
+            updateProgressContainer.classList.remove('d-none');
+            updateProgressBar.style.width = '0%';
+            updateProgressBar.classList.remove('progress-bar-indeterminate');
+            updatePercentText.textContent = '0%';
+            updateModalFooter.style.display = 'block';
+            updateLaterBtn.disabled = false;
+            updateLaterBtn.textContent = 'Hide';
+        } else if (state === 'ready') {
+            updateMessage.classList.remove('d-none');
+            updateMessage.innerHTML = text;
+            updateModalFooter.style.display = 'block';
+            updateLaterBtn.disabled = false;
+            updateLaterBtn.textContent = 'Later';
+            updateActionBtn.style.display = 'block';
+            updateActionBtn.textContent = 'Restart Now';
+            updateActionBtn.onclick = () => {
+                updateActionBtn.disabled = true;
+                window.electronAPI.installUpdate();
+            };
+        }
+    }
+
+    if (checkUpdateBtn) {
+        checkUpdateBtn.addEventListener('click', () => {
+            if (isCheckingForUpdates) return;
+            if (!navigator.onLine) {
+                setUpdateState('message', 'You are currently offline.<br>Please check your internet connection.');
+                return;
+            }
+            isCheckingForUpdates = true;
+            setUpdateState('checking');
+            window.electronAPI.checkForUpdates();
+        });
+    }
+
+    window.electronAPI.onUpdateEvent((data) => {
+        switch(data.type) {
+            case 'checking': setUpdateState('checking'); break;
+            case 'not-available':
+                isCheckingForUpdates = false;
+                const now = new Date();
+                const timeString = now.toLocaleDateString() + ' ' + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                setUpdateState('message', `<strong>No Updates Available</strong><br><small>You're already using the latest version.</small><br><br><small class="text-muted">Current Version: ${data.version}<br>Last Checked: ${timeString}</small>`);
+                break;
+            case 'available':
+                isCheckingForUpdates = false;
+                setUpdateState('available', `<strong>Update Available</strong><br>Version ${data.version} is ready to download.`);
+                break;
+            case 'progress':
+                updateProgressBar.style.width = data.percent + '%';
+                updatePercentText.textContent = Math.round(data.percent) + '%';
+                break;
+            case 'downloaded':
+                setUpdateState('ready', `<strong>Update Ready</strong><br>Version ${data.version} has been downloaded and is ready to install.`);
+                break;
+            case 'error':
+                isCheckingForUpdates = false;
+                setUpdateState('message', `<strong>Unable to check for updates</strong><br><small class="text-danger">Please check your internet connection and try again.</small>`);
+                break;
+        }
+    });
+});
+</script>

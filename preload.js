@@ -1,4 +1,4 @@
-﻿const { contextBridge, ipcRenderer } = require("electron");
+const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("electronAPI", {
 
@@ -43,20 +43,24 @@ contextBridge.exposeInMainWorld("electronAPI", {
     },
 
         onInternetStatus: (callback) => {
-
             ipcRenderer.on(
                 "internet-status",
                 (event, online) => {
-
                     console.log(
                         "preload received:",
                         online ? "CONNECTED" : "DISCONNECTED"
                     );
-
                     callback(online);
                 }
             );
-        }
+        },
 
-  
+        // --- Updater APIs ---
+        checkForUpdates: () => ipcRenderer.send("check-for-updates"),
+        downloadUpdate: () => ipcRenderer.send("download-update"),
+        installUpdate: () => ipcRenderer.send("install-update"),
+
+        onUpdateEvent: (callback) => {
+            ipcRenderer.on("update-event", (event, data) => callback(data));
+        }
 });
