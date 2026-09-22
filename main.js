@@ -5,6 +5,8 @@ const os = require("os");
 const { spawn } = require("child_process");
 const http = require("http");
 const { autoUpdater } = require("electron-updater");
+const net = require("net");
+let updateProgressWindow = null;
 
 
 let currentInternetStatus = true;
@@ -234,98 +236,6 @@ function createDatabase() {
     });
 }
 
-// function importDatabaseTemplate() {
-//     return new Promise((resolve, reject) => {
-
-//         const mysqlClientPath = path.join(
-//             path.dirname(mysqlPath),
-//             "mysql.exe"
-//         );
-
-//         const templatePath = app.isPackaged
-//             ? path.join(
-//                 process.resourcesPath,
-//                 "database-template",
-//                 "m_erp_desktop.sql"
-//             )
-//             : path.join(
-//                 __dirname,
-//                 "database-template",
-//                 "m_erp_desktop.sql"
-//             );
-
-//         console.log(
-//             "Importing database template:",
-//             templatePath
-//         );
-
-//         const mysqlProcess = spawn(
-//             mysqlClientPath,
-//             [
-//                 "-h", "127.0.0.1",
-//                 "-P", "3307",
-//                 "-u", "root",
-//                 "m_erp_desktop"
-//             ],
-//             {
-//                 cwd: path.dirname(mysqlClientPath),
-//                 windowsHide: true,
-//                 stdio: ["pipe", "pipe", "pipe"]
-//             }
-//         );
-
-//         mysqlProcess.stdout.on("data", data => {
-//             console.log(
-//                 "Database import:",
-//                 data.toString()
-//             );
-//         });
-
-//         let errorOutput = "";
-
-//         mysqlProcess.stderr.on("data", data => {
-//             errorOutput += data.toString();
-
-//             console.error(
-//                 "Database import error:",
-//                 data.toString()
-//             );
-//         });
-
-//         const sqlStream = fs.createReadStream(
-//             templatePath
-//         );
-
-//         sqlStream.on("error", error => {
-//             reject(error);
-//         });
-
-//         sqlStream.pipe(
-//             mysqlProcess.stdin
-//         );
-
-//         mysqlProcess.on("close", code => {
-
-//             if (code === 0) {
-
-//                 console.log(
-//                     "Database template imported successfully."
-//                 );
-
-//                 resolve();
-
-//             } else {
-
-//                 reject(
-//                     new Error(
-//                         "Database import failed:\n" +
-//                         errorOutput
-//                     )
-//                 );
-//             }
-//         });
-//     });
-// }
 
 function importDatabaseTemplate() {
     return new Promise((resolve, reject) => {
@@ -663,64 +573,108 @@ function initializeMySQLData(mysqlDataPath) {
     });
 }
 
+function isPortInUse(port, host = "127.0.0.1") {
+    return new Promise((resolve) => {
+        const socket = new net.Socket();
+
+        socket.setTimeout(1000);
+
+        socket.once("connect", () => {
+            socket.destroy();
+            resolve(true);
+        });
+
+        socket.once("timeout", () => {
+            socket.destroy();
+            resolve(false);
+        });
+
+        socket.once("error", () => {
+            socket.destroy();
+            resolve(false);
+        });
+
+        socket.connect(port, host);
+    });
+}
+
 function startMySQL(mysqlDataPath) {
     return new Promise((resolve, reject) => {
         console.log("Starting MariaDB...");
+
         let resolved = false;
 
-        const markReady = (data) => {
-            const output = data.toString();
-            console.log("MariaDB: " + output);
+        isPortInUse(3307).then((mysqlAlreadyRunning) => {
 
-            if (output.includes("ready for connections") && !resolved) {
-                resolved = true;
-                console.log("MariaDB is ready!");
+            if (mysqlAlreadyRunning) {
+                console.log("MariaDB is already running on port 3307.");
+                console.log("Reusing existing MariaDB process.");
                 resolve();
+                return;
             }
-        };
 
-        mysqlProcess = spawn(
-            mysqlPath,
-            [
-                "--defaults-file=" + mysqlConfigPath,
-                "--basedir=" + path.dirname(path.dirname(mysqlPath)),
-                "--datadir=" + mysqlDataPath,
-                "--console"
-            ],
-            {
-                cwd: path.dirname(mysqlPath),
-                windowsHide: true
-            }
-        );
+            const markReady = (data) => {
+                const output = data.toString();
+                console.log("MariaDB: " + output);
 
-        mysqlProcess.stdout.on("data", markReady);
-        mysqlProcess.stderr.on("data", markReady);
+                if (
+                    output.includes("ready for connections") &&
+                    !resolved
+                ) {
+                    resolved = true;
+                    console.log("MariaDB is ready!");
+                    resolve();
+                }
+            };
 
-        mysqlProcess.on("error", (error) => {
-            if (!resolved) reject(error);
+            mysqlProcess = spawn(
+                mysqlPath,
+                [
+                    "--defaults-file=" + mysqlConfigPath,
+                    "--basedir=" + path.dirname(path.dirname(mysqlPath)),
+                    "--datadir=" + mysqlDataPath,
+                    "--console"
+                ],
+                {
+                    cwd: path.dirname(mysqlPath),
+                    windowsHide: true
+                }
+            );
+
+            mysqlProcess.stdout.on("data", markReady);
+            mysqlProcess.stderr.on("data", markReady);
+
+            mysqlProcess.on("error", (error) => {
+                if (!resolved) {
+                    reject(error);
+                }
+            });
+
+            mysqlProcess.on("close", (code) => {
+                console.log("MariaDB stopped with code " + code);
+
+                if (!resolved && code !== 0) {
+                    reject(
+                        new Error(
+                            "MariaDB stopped before becoming ready. Code: " + code
+                        )
+                    );
+                }
+            });
+
+            setTimeout(() => {
+                if (!resolved) {
+                    reject(
+                        new Error(
+                            "MariaDB did not start within 30 seconds."
+                        )
+                    );
+                }
+            }, 30000);
+
+        }).catch((error) => {
+            reject(error);
         });
-
-        mysqlProcess.on("close", (code) => {
-            console.log("MariaDB stopped with code " + code);
-
-            if (!resolved && code !== 0) {
-                reject(
-                    new Error(
-                        "MariaDB stopped before becoming ready. Code: " + code
-                    )
-                );
-            }
-        });
-
-        setTimeout(() => {
-            if (!resolved) {
-                reject(
-                    new Error(
-                        "MariaDB did not start within 30 seconds."
-                    )
-                );
-            }
-        }, 30000);
     });
 }
 
@@ -755,7 +709,7 @@ function startLaravel() {
             ],
             {
                 cwd: laravelPath,
-                env: laravelEnv,
+                env: laravelEnv,                
                 windowsHide: true,
                 stdio: ["ignore", "pipe", "pipe"]
             }
@@ -913,103 +867,7 @@ async function createWindow() {
     lastInternetStatus = online;
 }
 
-// async function startApplication() {
-//     try {
-//         const runtimePath = app.isPackaged
-//             ? path.join(process.resourcesPath, "runtime")
-//             : path.join(__dirname, "runtime");
 
-//         const mysqlDataPath = app.isPackaged
-//             ? path.join(process.resourcesPath, "data", "mysql")
-//             : path.join(__dirname, "data", "mysql");
-
-
-//         mysqlPath       = path.join(runtimePath, "mysql", "bin", "mysqld.exe");
-//         mysqlConfigPath = path.join(runtimePath, "mysql", "my.ini");
-//         phpPath         = path.join(runtimePath, "php", "php.exe");
-//         laravelPath     = path.join(runtimePath, "M-ERP-Desktop");
-
-//         await startMySQL();
-//         console.log("Database started.");
-
-//         await startLaravel();
-//         console.log("Laravel started.");
-
-//         await createWindow();
-//         console.log("M-ERP started.");
-
-//     } catch (error) {
-//         console.error("Application startup failed:", error);
-//     }
-// }
-
-// function waitForLaravel(LARAVEL_URL ,timeout = 30000) {
-//     return new Promise((resolve, reject) => {
-//         const start = Date.now();
-
-//         const check = () => {
-//             const request = http.get(LARAVEL_URL, (response) => {
-//                 response.destroy();
-
-//                 console.log("Laravel is ready!");
-//                 resolve();
-//             });
-
-//             request.on("error", () => {
-//                 if (Date.now() - start >= timeout) {
-//                     reject(
-//                         new Error(
-//                             "Laravel did not start within 30 seconds."
-//                         )
-//                     );
-//                     return;
-//                 }
-
-//                 setTimeout(check, 500);
-//             });
-
-//             request.setTimeout(1000, () => {
-//                 request.destroy();
-//             });
-//         };
-
-//         check();
-//     });
-// }
-
-// function waitForLaravel(LARAVEL_URL, timeout = 30000) {
-//     return new Promise((resolve, reject) => {
-//         const start = Date.now();
-
-//         const check = () => {
-//             const request = http.get(LARAVEL_URL, (response) => {
-//                 response.destroy();
-
-//                 console.log("Laravel is ready!");
-//                 resolve();
-//             });
-
-//             request.on("error", () => {
-//                 if (Date.now() - start >= timeout) {
-//                     reject(
-//                         new Error(
-//                             "Laravel did not start within 30 seconds."
-//                         )
-//                     );
-//                     return;
-//                 }
-
-//                 setTimeout(check, 300);
-//             });
-
-//             request.setTimeout(1000, () => {
-//                 request.destroy();
-//             });
-//         };
-
-//         check();
-//     });
-// }
 
 function waitForLaravel(LARAVEL_URL, timeout = 30000) {
     return new Promise((resolve, reject) => {
@@ -1063,6 +921,10 @@ function runArtisan(command, args = []) {
             ],
             {
                 cwd: laravelPath,
+                env: {
+                    ...process.env,
+                    LARAVEL_STORAGE_PATH: laravelStoragePath
+                },
                 windowsHide: true
             }
         );
@@ -1206,6 +1068,86 @@ async function updateLaravelDatabase() {
     console.log("Laravel database migration check completed.");
 }
 
+//update process show 
+function createUpdateProgressWindow() {
+    if (updateProgressWindow && !updateProgressWindow.isDestroyed()) {
+        return;
+    }
+
+    updateProgressWindow = new BrowserWindow({
+        width: 420,
+        height: 180,
+        resizable: false,
+        minimizable: false,
+        maximizable: false,
+        closable: false,
+        alwaysOnTop: true,
+        center: true,
+        modal: true,
+        parent: mainWindow,
+        webPreferences: {
+            contextIsolation: true,
+            nodeIntegration: false
+        }
+    });
+
+    updateProgressWindow.setMenuBarVisibility(false);
+
+    updateProgressWindow.loadURL(
+        `data:text/html;charset=utf-8,
+        <html>
+        <body style="
+            margin:0;
+            padding:30px;
+            font-family:Arial,sans-serif;
+            text-align:center;
+            background:#fff;
+        ">
+            <h3 style="margin:0 0 15px;">M ERP Update</h3>
+
+            <div style="
+                font-size:14px;
+                margin-bottom:12px;
+            ">
+                Downloading update...
+            </div>
+
+            <div style="
+                width:100%;
+                height:12px;
+                background:#e5e5e5;
+                border-radius:6px;
+                overflow:hidden;
+            ">
+                <div id="progress" style="
+                    width:0%;
+                    height:100%;
+                    background:#0d6efd;
+                    transition:width .2s;
+                "></div>
+            </div>
+
+            <div id="percent" style="
+                margin-top:10px;
+                font-size:13px;
+            ">
+                0%
+            </div>
+
+            <script>
+                window.updateProgress = function(percent) {
+                    document.getElementById("progress").style.width =
+                        percent + "%";
+
+                    document.getElementById("percent").innerText =
+                        percent.toFixed(1) + "%";
+                };
+            </script>
+        </body>
+        </html>`
+    );
+}
+
 // update exe file
 function setupAutoUpdater() {
 
@@ -1263,10 +1205,14 @@ function setupAutoUpdater() {
 
                 updateDownloading = true;
 
+                createUpdateProgressWindow();
+
                 try {
                     await autoUpdater.downloadUpdate();
                 } catch (error) {
                     updateDownloading = false;
+
+                    mainWindow.webContents.send("update-error", error.message);
 
                     console.error(
                         "Update download failed:",
@@ -1306,15 +1252,12 @@ function setupAutoUpdater() {
             `Update download: ${progress.percent.toFixed(1)}%`
         );
 
-        if (mainWindow && !mainWindow.isDestroyed()) {
-
-            mainWindow.webContents.send(
-                "update-progress",
-                {
-                    percent: progress.percent,
-                    transferred: progress.transferred,
-                    total: progress.total
-                }
+        if (
+            updateProgressWindow &&
+            !updateProgressWindow.isDestroyed()
+        ) {
+            updateProgressWindow.webContents.executeJavaScript(
+                `window.updateProgress(${progress.percent})`
             );
         }
     });
@@ -1323,6 +1266,11 @@ function setupAutoUpdater() {
 
         updateDownloading = false;
         updateDownloaded = true;
+
+        if (updateProgressWindow &&!updateProgressWindow.isDestroyed()) {
+                updateProgressWindow.close();
+                updateProgressWindow = null;
+        }
 
         console.log(
             "Update downloaded successfully:",
@@ -1388,6 +1336,14 @@ function setupAutoUpdater() {
 
         updateCheckInProgress = false;
         updateDownloading = false;
+
+        if (
+            updateProgressWindow &&
+            !updateProgressWindow.isDestroyed()
+        ) {
+            updateProgressWindow.close();
+            updateProgressWindow = null;
+        }
 
         console.error(
             "Auto-update error:",
