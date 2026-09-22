@@ -2,7 +2,6 @@
 # Laravel Files & Folders
 # ========================================
 /vendor/
-composer.lock
 .env
 # .env.*
 .phpunit.result.cache

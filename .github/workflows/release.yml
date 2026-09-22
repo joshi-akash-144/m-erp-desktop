@@ -43,6 +43,27 @@ jobs:
         run: npm ci
 
       # ---------------------------------------------------------
+      # 3.5 Install Laravel Composer Dependencies
+      # ---------------------------------------------------------
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: composer
+          
+      - name: Install Composer Dependencies
+        working-directory: runtime/Laravel
+        run: composer install --no-dev --optimize-autoloader
+        
+      - name: Verify autoload.php
+        shell: pwsh
+        run: |
+          if (-Not (Test-Path "runtime/Laravel/vendor/autoload.php")) {
+            Write-Error "CRITICAL: runtime/Laravel/vendor/autoload.php is missing. Composer installation failed or generated files in the wrong directory."
+            exit 1
+          }
+
+      # ---------------------------------------------------------
       # 4. Build Windows installer
       #
       # electron-builder will:
