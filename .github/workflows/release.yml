@@ -9,6 +9,11 @@ on:
 permissions:
   contents: write
 
+# Prevent duplicate workflow runs for the same tag if pushed twice quickly
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   release:
     name: Build Windows Installer
